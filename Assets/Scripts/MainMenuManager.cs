@@ -37,6 +37,7 @@ public class MainMenuManager : MonoBehaviour
         NetManager.OnConnectionEvent += OnConnectionEvent;
         NetManager.OnServerStopped += OnServerStopped;
         NetManager.OnTransportFailure += OnTransportFailure;
+
     }
 
 
@@ -45,6 +46,8 @@ public class MainMenuManager : MonoBehaviour
     {
         // we make sure that the net manager, a object that is persistent does not have a a null reference.
         NetManager.OnConnectionEvent -= OnConnectionEvent;
+        NetManager.OnServerStopped -= OnServerStopped;
+        NetManager.OnTransportFailure -= OnTransportFailure;
     }
 
     void Update()
@@ -78,7 +81,10 @@ public class MainMenuManager : MonoBehaviour
         if (data.EventType == ConnectionEvent.ClientConnected)
         {
             if (data.ClientId == manager.LocalClientId)
-                ShowMenu("inserver");
+            {
+                NetManager.SceneManager.LoadScene("PreGameScene", UnityEngine.SceneManagement.LoadSceneMode.Single);
+            }
+            // ShowMenu("inserver");
         }
 
         print(data.EventType.ToString());
