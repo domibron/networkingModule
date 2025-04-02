@@ -1,11 +1,7 @@
 using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using TMPro;
-using Unity.Services.Authentication;
-using Unity.Services.Lobbies;
-using Unity.Services.Lobbies.Models;
+using Unity.Netcode;
+using Unity.Netcode.Transports.UTP;
 using UnityEngine;
 
 
@@ -22,24 +18,14 @@ public class MainMenuManager : MonoBehaviour
 
     public UIItem[] MainMenuUIs;
 
-    // lobby shit that should be moved to a lobby ui manager.
+    // joining
+    public TMP_InputField InputField;
 
-    public TMP_Text LobbyNamePlate;
+    // creating
+    public TMP_InputField IPInput;
+    public TMP_InputField PortInput;
 
-    public GameObject PlayerListItem;
-
-    public GameObject PlayerListSpawnLocation;
-
-    public GameObject StartGameButton;
-
-
-    // server list
-
-    public GameObject ServerListItem;
-
-    public GameObject ServerListSpawnLocation;
-
-
+    private string _lastMenu;
 
     void Awake()
     {
@@ -48,122 +34,107 @@ public class MainMenuManager : MonoBehaviour
 
     void Start()
     {
-        NetManager.OnJoinLobby += OnJoinedLobby;
-        NetManager.OnPlayerJoined += OnPlayerJoined;
-        NetManager.OnPlayedLeft += OnPlayedLeft;
+        NetManager.OnConnectionEvent += OnConnectionEvent;
+        NetManager.OnServerStopped += OnServerStopped;
+        NetManager.OnTransportFailure += OnTransportFailure;
     }
 
-    private void OnPlayedLeft(List<int> list)
+
+
+    void OnDisable()
     {
-        ClearLobbyOfNamePlates();
-
-        foreach (var player in NetManager.CurrentLobby.Players)
-        {
-            GameObject playerNamePlate = Instantiate(PlayerListItem, PlayerListSpawnLocation.transform);
-
-            string name = "anonymous";
-            if (player.Profile != null) name = player.Profile.Name;
-
-
-            playerNamePlate.GetComponent<PlayerListItem>()?.SetValues(name, player.Id);
-        }
-    }
-
-    private void OnPlayerJoined(List<LobbyPlayerJoined> list)
-    {
-        ClearLobbyOfNamePlates();
-
-        foreach (var player in NetManager.CurrentLobby.Players)
-        {
-            GameObject playerNamePlate = Instantiate(PlayerListItem, PlayerListSpawnLocation.transform);
-
-            string name = "anonymous";
-            if (player.Profile != null) name = player.Profile.Name;
-
-
-            playerNamePlate.GetComponent<PlayerListItem>()?.SetValues(name, player.Id);
-        }
+        // we make sure that the net manager, a object that is persistent does not have a a null reference.
+        NetManager.OnConnectionEvent -= OnConnectionEvent;
     }
 
     void Update()
     {
-        if (IsInMenu("serverlist"))
-        {
 
+    }
+
+    private void OnTransportFailure()
+    {
+        print("Transport failure");
+
+        ShowMenu(_lastMenu);
+    }
+
+    private void OnServerStopped(bool obj)
+    {
+        print(obj);
+
+        ShowMenu(_lastMenu);
+
+    }
+
+    private void OnConnectionEvent(NetworkManager manager, ConnectionEventData data)
+    {
+        if (data.EventType == ConnectionEvent.ClientDisconnected)
+        {
+            ShowMenu(_lastMenu);
+        }
+
+        if (data.EventType == ConnectionEvent.ClientConnected)
+        {
+            ShowMenu("inserver");
+        }
+
+        print(data.EventType.ToString());
+
+    }
+
+    public void LeaveServer()
+    {
+
+        NetworkManager.Singleton.Shutdown();
+
+    }
+
+
+    public void ConnectedToServer()
+    {
+        _lastMenu = GetActiveMenu();
+        ShowMenu("connecting");
+
+        try
+        {
+            string input = InputField.text;
+
+            string[] ipAndPort = input.Split(':');
+
+            ushort port = ushort.Parse(ipAndPort[1]);
+
+
+            NetManager.ConnectToIPAndPort(ipAndPort[0], port);
+        }
+        catch (Exception e)
+        {
+            ShowMenu(_lastMenu);
+            print(e.Message);
         }
     }
 
-    public void CallRefreshServerList()
+    public void HostServer()
     {
-        RefreshServerList();
-    }
+        _lastMenu = GetActiveMenu();
+        ShowMenu("connecting");
 
-    // its actually a lobby not a server.
-    public async Task RefreshServerList()
-    {
-        Transform[] serverListItems = ServerListSpawnLocation.transform.GetComponentsInChildren<Transform>();
-
-        for (int i = serverListItems.Length - 1; i > 0; i--)
+        try
         {
-            Destroy(serverListItems[i].gameObject);
+            string ip = IPInput.text;
+
+
+            ushort port = ushort.Parse(PortInput.text);
+
+
+            NetManager.HostIPAndPort(ip, port);
+
+            print(NetworkManager.Singleton.GetComponent<UnityTransport>().ConnectionData.Address);
         }
-
-        QueryResponse queryResponse = await LobbyService.Instance.QueryLobbiesAsync();
-
-        foreach (var server in queryResponse.Results)
+        catch (Exception e)
         {
-            GameObject serverItem = Instantiate(ServerListItem, ServerListSpawnLocation.transform);
-
-            string serverID = (server.IsPrivate || server.IsLocked ? null : server.Id);
-
-            serverItem.GetComponent<ServerListItem>()?.SetUpServerListItem(server.Name, server.IsPrivate, serverID);
-        }
-    }
-
-
-    private void OnJoinedLobby()
-    {
-        Debug.Log("Joined lobby");
-
-        ShowMenu("lobby");
-
-        ClearLobbyOfNamePlates();
-
-        foreach (var player in NetManager.CurrentLobby.Players)
-        {
-            GameObject playerNamePlate = Instantiate(PlayerListItem, PlayerListSpawnLocation.transform);
-
-            string name = "anonymous";
-            if (player.Profile != null) name = player.Profile.Name;
-
-
-            playerNamePlate.GetComponent<PlayerListItem>()?.SetValues(name, player.Id);
-        }
-
-        Debug.Log("Player list populated");
-
-
-        if (NetManager.CurrentLobby.HostId == AuthenticationService.Instance.PlayerInfo.Id)
-        {
-            Debug.Log("Player is host");
-            StartGameButton.SetActive(true);
-        }
-        else
-        {
-            Debug.Log("Player is not host");
-            StartGameButton.SetActive(false);
-        }
-
-        LobbyNamePlate.text = NetManager.CurrentLobby.Name;
-    }
-
-    private void ClearLobbyOfNamePlates()
-    {
-        Transform[] namePlates = PlayerListSpawnLocation.transform.GetComponentsInChildren<Transform>();
-
-        for (int i = namePlates.Length - 1; i > 0; i--)
-        {
-            Destroy(namePlates[i].gameObject);
+            ShowMenu(_lastMenu);
+            print(e.Message);
         }
     }
 
@@ -184,5 +155,15 @@ public class MainMenuManager : MonoBehaviour
         }
 
         return false;
+    }
+
+    public string GetActiveMenu()
+    {
+        foreach (var item in MainMenuUIs)
+        {
+            if (item.UIObject.activeSelf) return item.UIName;
+        }
+
+        return "mainmenu";
     }
 }
