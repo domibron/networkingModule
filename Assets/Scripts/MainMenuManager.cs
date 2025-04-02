@@ -85,9 +85,8 @@ public class MainMenuManager : MonoBehaviour
 
     public void LeaveServer()
     {
-
-        NetworkManager.Singleton.Shutdown();
-
+        if (NetworkManager.Singleton.IsHost || NetworkManager.Singleton.IsServer) NetworkManager.Singleton.Shutdown();
+        else NetworkManager.Singleton.DisconnectClient(NetworkManager.Singleton.LocalClientId);
     }
 
 
