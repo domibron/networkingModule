@@ -71,12 +71,14 @@ public class MainMenuManager : MonoBehaviour
     {
         if (data.EventType == ConnectionEvent.ClientDisconnected)
         {
-            ShowMenu(_lastMenu);
+            if (data.ClientId == manager.LocalClientId)
+                ShowMenu(_lastMenu);
         }
 
         if (data.EventType == ConnectionEvent.ClientConnected)
         {
-            ShowMenu("inserver");
+            if (data.ClientId == manager.LocalClientId)
+                ShowMenu("inserver");
         }
 
         print(data.EventType.ToString());
@@ -85,8 +87,7 @@ public class MainMenuManager : MonoBehaviour
 
     public void LeaveServer()
     {
-        if (NetworkManager.Singleton.IsHost || NetworkManager.Singleton.IsServer) NetworkManager.Singleton.Shutdown();
-        else NetworkManager.Singleton.DisconnectClient(NetworkManager.Singleton.LocalClientId);
+        NetworkManager.Singleton.Shutdown();
     }
 
 
