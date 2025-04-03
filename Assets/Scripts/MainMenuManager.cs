@@ -58,10 +58,7 @@ public class MainMenuManager : MonoBehaviour
         CustomNetworkManager.Instance.OnConnectionEvent += OnConnectionEvent;
         CustomNetworkManager.Instance.OnServerStopped += OnServerStopped;
         CustomNetworkManager.Instance.OnTransportFailure += OnTransportFailure;
-
     }
-
-
 
     void OnDisable()
     {
@@ -106,11 +103,14 @@ public class MainMenuManager : MonoBehaviour
         // we can ignore this for now.
         if (data.ClientId != manager.LocalClientId) return;
 
-        switch (data.EventType)
+        if (!manager.IsConnectedClient && data.EventType == ConnectionEvent.ClientDisconnected)
         {
-            case ConnectionEvent.ClientDisconnected:
-                Disconnected(manager.DisconnectReason);
-                break;
+            Disconnected("Server timed out");
+
+        }
+        else if (manager.IsConnectedClient && data.EventType == ConnectionEvent.ClientDisconnected)
+        {
+            Disconnected(manager.DisconnectReason);
         }
     }
 

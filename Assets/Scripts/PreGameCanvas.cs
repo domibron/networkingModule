@@ -26,7 +26,7 @@ public class PreGameCanvas : NetworkBehaviour
             PlayerCountNumber.Value = NetworkManager.Singleton.ConnectedClients.Count;
         }
 
-        PlayerCount.text = "Player count = " + PlayerCountNumber.Value;
+        PlayerCount.text = "Players\n" + PlayerCountNumber.Value;
 
         PlayerCountNumber.OnValueChanged += UpdatePlayerCount;
 
@@ -62,7 +62,7 @@ public class PreGameCanvas : NetworkBehaviour
     // after we know we are not present, we clean up and remove the network manager.
     public void DisconnectFromServer()
     {
-        //GameObject NetworkManagerObject = NetworkManager.Singleton.gameObject;
+        GameObject NetworkManagerObject = NetworkManager.Singleton.gameObject;
 
         NetworkManager.Singleton.Shutdown();
 
@@ -73,7 +73,7 @@ public class PreGameCanvas : NetworkBehaviour
         GameObject disconnectReason = Instantiate(DisconnectReason);
         disconnectReason.GetComponent<DisconnectReason>().reason = reason;
 
-        //Destroy(NetworkManagerObject); // we don't want it to go wrong.
+        Destroy(NetworkManagerObject); // we don't want it to go wrong.
 
 
         SceneManager.LoadScene("MainMenu", LoadSceneMode.Single);
