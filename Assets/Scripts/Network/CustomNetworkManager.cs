@@ -24,16 +24,18 @@ public class CustomNetworkManager : NetworkManager
     void Start()
     {
         OnConnectionEvent += OnConnectionEventTriggered;
+        NetworkManager.Singleton.ConnectionApprovalCallback = ApprovalCheck;
     }
 
 
 
     public void ConnectToIPAndPort(string ip, ushort port)
     {
-        NetworkManager.Singleton.GetComponent<UnityTransport>().SetConnectionData(
-        ip,  // The IP address is a string
-        port // The port number is an unsigned short
-        );
+
+        // NetworkManager.Singleton.GetComponent<UnityTransport>().SetConnectionData(
+        // ip,  // The IP address is a string
+        // port // The port number is an unsigned short
+        // );
 
         StartClient();
     }
@@ -80,5 +82,21 @@ public class CustomNetworkManager : NetworkManager
     public static bool IsHeadlessMode()
     {
         return Application.isBatchMode;
+    }
+
+    private void ApprovalCheck(NetworkManager.ConnectionApprovalRequest request, NetworkManager.ConnectionApprovalResponse response)
+    {
+        if (Singleton.ConnectedClientsIds.Count >= 2)
+        {
+            response.Approved = false;
+            response.Reason = "Server is full!";
+        }
+        else
+        {
+            response.Approved = true;
+            response.CreatePlayerObject = true;
+        }
+
+        response.Pending = false;
     }
 }

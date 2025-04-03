@@ -3065,7 +3065,7 @@ MonoBehaviour:
   PortInput: {fileID: 608422977}
   DisconnectedTextDisplay: {fileID: 2093953868}
   ConnectingTextDisplay: {fileID: 999379135}
-  GameSceneName: GameScene
+  GameSceneName: PreGameScene
 --- !u!1 &910759418
 GameObject:
   m_ObjectHideFlags: 0
@@ -4960,9 +4960,9 @@ MonoBehaviour:
   m_MaxConnectAttempts: 60
   m_DisconnectTimeoutMS: 30000
   ConnectionData:
-    Address: 
-    Port: 0
-    ServerListenAddress: 192.168.0.111
+    Address: 127.0.0.1
+    Port: 7777
+    ServerListenAddress: 127.0.0.1
   DebugSimulator:
     PacketDelayMS: 0
     PacketJitterMS: 0
@@ -4982,13 +4982,14 @@ MonoBehaviour:
   NetworkConfig:
     ProtocolVersion: 0
     NetworkTransport: {fileID: 1442623069}
-    PlayerPrefab: {fileID: 0}
+    PlayerPrefab: {fileID: 2794790786013522798, guid: 7a3e4945307a28a4ba69743d208d4071,
+      type: 3}
     Prefabs:
       NetworkPrefabsLists:
       - {fileID: 11400000, guid: c8e5b979b62ff0546a96407263cf2bbb, type: 2}
     TickRate: 60
     ClientConnectionBufferTimeout: 10
-    ConnectionApproval: 0
+    ConnectionApproval: 1
     ConnectionData: 
     EnableTimeResync: 0
     TimeResyncInterval: 30
