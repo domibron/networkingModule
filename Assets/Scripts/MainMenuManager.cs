@@ -14,7 +14,6 @@ public class UIItem
 
 public class MainMenuManager : MonoBehaviour
 {
-    public CustomNetworkManager NetManager;
 
     public UIItem[] MainMenuUIs;
 
@@ -25,18 +24,40 @@ public class MainMenuManager : MonoBehaviour
     public TMP_InputField IPInput;
     public TMP_InputField PortInput;
 
+    // disconnected
+
+    public TMP_Text DisconnectedTextDisplay;
+
+    // connecting
+
+
+    public TMP_Text ConnectingTextDisplay;
+
+
+    public string GameSceneName = "GameScene";
+
     private string _lastMenu;
+
+
+    private float loadingTimer = 0f;
+
 
     void Awake()
     {
+        // ! THIS LACKS PROPER IMPLEMENTATION.
+        if (CustomNetworkManager.IsHeadlessMode())
+        {
+            CustomNetworkManager.Instance.StartServerIPAndPort("86.10.14.161", (ushort)7777);
+        }
+
         ShowMenu("mainmenu");
     }
 
     void Start()
     {
-        NetManager.OnConnectionEvent += OnConnectionEvent;
-        NetManager.OnServerStopped += OnServerStopped;
-        NetManager.OnTransportFailure += OnTransportFailure;
+        CustomNetworkManager.Instance.OnConnectionEvent += OnConnectionEvent;
+        CustomNetworkManager.Instance.OnServerStopped += OnServerStopped;
+        CustomNetworkManager.Instance.OnTransportFailure += OnTransportFailure;
 
     }
 
@@ -45,55 +66,59 @@ public class MainMenuManager : MonoBehaviour
     void OnDisable()
     {
         // we make sure that the net manager, a object that is persistent does not have a a null reference.
-        NetManager.OnConnectionEvent -= OnConnectionEvent;
-        NetManager.OnServerStopped -= OnServerStopped;
-        NetManager.OnTransportFailure -= OnTransportFailure;
+        CustomNetworkManager.Instance.OnConnectionEvent -= OnConnectionEvent;
+        CustomNetworkManager.Instance.OnServerStopped -= OnServerStopped;
+        CustomNetworkManager.Instance.OnTransportFailure -= OnTransportFailure;
     }
 
     void Update()
     {
+        if (IsInMenu("connecting"))
+        {
+            loadingTimer += Time.deltaTime;
+            ConnectingTextDisplay.text = $"Connecting to {CustomNetworkManager.Instance.GetComponent<UnityTransport>().ConnectionData.Address}"
+            + $":{CustomNetworkManager.Instance.GetComponent<UnityTransport>().ConnectionData.Port}\nDuration: {loadingTimer.ToString("F1")}";
+        }
+        else
+        {
+            loadingTimer = 0f;
+        }
 
     }
 
     private void OnTransportFailure()
     {
         print("Transport failure");
-
+        NetworkManager.Singleton.Shutdown();
         ShowMenu(_lastMenu);
     }
 
     private void OnServerStopped(bool obj)
     {
         print(obj);
-
+        NetworkManager.Singleton.Shutdown();
         ShowMenu(_lastMenu);
 
     }
 
     private void OnConnectionEvent(NetworkManager manager, ConnectionEventData data)
     {
-        if (data.EventType == ConnectionEvent.ClientDisconnected)
+        // we can ignore this for now.
+        if (data.ClientId != manager.LocalClientId) return;
+
+        switch (data.EventType)
         {
-            if (data.ClientId == manager.LocalClientId)
-                ShowMenu(_lastMenu);
+            case ConnectionEvent.ClientDisconnected:
+                Disconnected(manager.DisconnectReason);
+                break;
         }
-
-        if (data.EventType == ConnectionEvent.ClientConnected)
-        {
-            if (data.ClientId == manager.LocalClientId)
-            {
-                NetManager.SceneManager.LoadScene("PreGameScene", UnityEngine.SceneManagement.LoadSceneMode.Single);
-            }
-            // ShowMenu("inserver");
-        }
-
-        print(data.EventType.ToString());
-
     }
 
     public void LeaveServer()
     {
+        loadingTimer = 0f;
         NetworkManager.Singleton.Shutdown();
+        ShowMenu(_lastMenu);
     }
 
 
@@ -111,7 +136,7 @@ public class MainMenuManager : MonoBehaviour
             ushort port = ushort.Parse(ipAndPort[1]);
 
 
-            NetManager.ConnectToIPAndPort(ipAndPort[0], port);
+            CustomNetworkManager.Instance.ConnectToIPAndPort(ipAndPort[0], port);
         }
         catch (Exception e)
         {
@@ -133,9 +158,11 @@ public class MainMenuManager : MonoBehaviour
             ushort port = ushort.Parse(PortInput.text);
 
 
-            NetManager.HostIPAndPort(ip, port);
+            CustomNetworkManager.Instance.HostIPAndPort(ip, port);
 
             print(NetworkManager.Singleton.GetComponent<UnityTransport>().ConnectionData.Address);
+
+            CustomNetworkManager.Instance.SceneManager.LoadScene(GameSceneName, UnityEngine.SceneManagement.LoadSceneMode.Single);
         }
         catch (Exception e)
         {
@@ -171,5 +198,20 @@ public class MainMenuManager : MonoBehaviour
         }
 
         return "mainmenu";
+    }
+
+    public void Disconnected(string reason)
+    {
+        ShowMenu("disconnected");
+
+        if (string.IsNullOrEmpty(reason)) reason = "No reason was specified";
+
+        DisconnectedTextDisplay.text = reason;
+    }
+
+    public void QuitGame()
+    {
+        NetworkManager.Singleton.Shutdown();
+        Application.Quit();
     }
 }
