@@ -17,6 +17,6 @@ public class SpawnPlayers : NetworkBehaviour
     [Rpc(SendTo.Server)]
     private void SpawnPlayersServerRPC(Vector3 p1Spawn, Vector3 p2Spawn)
     {
-        GamePersistent.Instance.SpawnPlayers(p1Spawn, p2Spawn);
+        GamePersistent.Instance.SpawnPlayersServerRPC(p1Spawn, p2Spawn);
     }
 }

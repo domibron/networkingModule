@@ -87,13 +87,13 @@ public class CustomNetworkManager : NetworkManager
     {
         if (Singleton.ConnectedClientsIds.Count >= 2)
         {
-            response.Approved = false;
             response.Reason = "Server is full!";
+            response.Approved = false;
         }
         else
         {
-            response.Approved = true;
             response.CreatePlayerObject = true;
+            response.Approved = true;
         }
 
         response.Pending = false;

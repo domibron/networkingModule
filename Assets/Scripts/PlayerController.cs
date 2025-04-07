@@ -7,9 +7,10 @@ using UnityEngine;
 public class PlayerController : NetworkBehaviour
 {
     private CharacterController _cc;
-    private AnticipatedNetworkTransform _antTransform;
+    private NetworkTransform _netTransform;
 
     private Transform camTransform;
+    // public Transform PlayerBody;
 
     private Vector3 _velocity = Vector3.zero;
 
@@ -23,7 +24,7 @@ public class PlayerController : NetworkBehaviour
     void Awake()
     {
         _cc = GetComponent<CharacterController>();
-        _antTransform = GetComponent<AnticipatedNetworkTransform>();
+        _netTransform = GetComponent<NetworkTransform>();
 
         camTransform = GetComponentInChildren<Camera>().transform;
 
@@ -31,16 +32,21 @@ public class PlayerController : NetworkBehaviour
 
     }
 
+
+
     public override void OnNetworkSpawn()
     {
+
         base.OnNetworkSpawn();
 
         if (!IsOwner)
         {
             camTransform.GetComponent<Camera>().enabled = false; // dont need cam for non local player
+            camTransform.GetComponent<AudioListener>().enabled = false;
         }
 
-        SetPosServerRPC(transform.position);
+        if (IsOwner) SetLastPosServerRPC(transform.position);
+        // SyncScaleServerRPC(Vector3.one);
     }
 
     // Start is called before the first frame update
@@ -49,11 +55,8 @@ public class PlayerController : NetworkBehaviour
 
     }
 
-    [Rpc(SendTo.Server)]
-    private void SetPosServerRPC(Vector3 pos)
-    {
-        _lastPos.Value = pos;
-    }
+
+
 
     // Update is called once per frame
     void Update()
@@ -78,57 +81,62 @@ public class PlayerController : NetworkBehaviour
         Vector3 PlayerMovementDirection = inputAppliedToRotation.normalized * Speed * Time.deltaTime;
 
         _cc.Move(PlayerMovementDirection);
-        _antTransform.AnticipateMove(transform.position);
 
-        MovePlayerServerRPC(transform.position, Time.deltaTime);
+        VerifyLegalMoveServerRPC(transform.position);
+        // _netTransform.
     }
 
+    /// <summary>
+    /// Sets the last pos so the server does not freak out.
+    /// </summary>
+    /// <param name="pos">The current pos of the player on the client.</param>
     [Rpc(SendTo.Server)]
-    private void MovePlayerServerRPC(Vector3 newPosition, float deltaTime)
+    private void SetLastPosServerRPC(Vector3 pos)
     {
-        float yVel = newPosition.y; // we separate y because of gravity.
-        Vector3 lastPosNoY = new Vector3(_lastPos.Value.x, 0, _lastPos.Value.z);
-
-        //TODO deal with jumping and gravity checks
-
-        newPosition.y = 0;
-
-        Vector3 correctedMovement = Vector3.zero;
+        _lastPos.Value = pos;
+    }
 
 
-        float delta = Vector3.Distance(lastPosNoY, newPosition);
+    [Rpc(SendTo.Server)]
+    private void VerifyLegalMoveServerRPC(Vector3 pos)
+    {
+        // TODO remove the yVel and calc separately.
+        // float yVel = pos.y - _lastPos.Value.y;
 
-        if (delta > Speed * deltaTime + 0.05f)
+
+
+        if (Vector3.Distance(_lastPos.Value, pos) > Speed * (Time.deltaTime * 2f) + 0.5f)
         {
-            // we correct the movement with the correct spacing. Dont want rubber banding to the 7th degree.
-            correctedMovement = lastPosNoY + (newPosition - transform.position).normalized * Speed * deltaTime;
-
-            correctedMovement.y = yVel;
-            print(correctedMovement.y);
-
-            _antTransform.SetState(correctedMovement);
-            _lastPos.Value = correctedMovement;
-
-            ResetPositionOwnerRPC(correctedMovement);
-
-            print(correctedMovement);
-
+            // correct the move.
+            // TODO time.deltaTime * 2 needs to be replaced with ping delay from server to client and client to server to client
+            Vector3 newPos = _lastPos.Value + (pos - _lastPos.Value).normalized * Speed * (Time.deltaTime * 2f);
+            CorrectMoveOwnerRPC(newPos);
+            _lastPos.Value = newPos;
         }
         else
         {
-            newPosition.y = yVel;
-            _antTransform.SetState(newPosition);
-            _lastPos.Value = newPosition;
-        }
+            _lastPos.Value = pos;
 
+        }
 
     }
 
     [Rpc(SendTo.Owner)]
-    private void ResetPositionOwnerRPC(Vector3 pos)
+    private void CorrectMoveOwnerRPC(Vector3 pos)
     {
-        _antTransform.AnticipateMove(pos);
-        print("corrected " + pos);
+        print("Move corrected");
+        transform.position = pos;
+    }
+
+    [Rpc(SendTo.Owner)]
+    public void SetLocationOwnerRPC(Vector3 pos)
+    {
+        print("Move corrected");
+        _cc.enabled = false;
+        transform.position = pos;
+        SetLastPosServerRPC(pos);
+
+        _cc.enabled = true;
 
     }
 }

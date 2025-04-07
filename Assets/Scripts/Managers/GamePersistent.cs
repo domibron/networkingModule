@@ -125,18 +125,23 @@ public class GamePersistent : NetworkBehaviour
         Timer.Value = RoundTime;
     }
 
-    public void SpawnPlayers(Vector3 playerOneStart, Vector3 playerTwoStart)
+    // TODO use transforms to align rotation.
+    [Rpc(SendTo.Server)]
+    public void SpawnPlayersServerRPC(Vector3 playerOneStart, Vector3 playerTwoStart)
     {
         int playerCount = 0;
         foreach (var player in NetworkManager.Singleton.ConnectedClientsIds)
         {
             Vector3 spawnPoint = playerCount == 0 ? playerOneStart : playerTwoStart;
 
-            print(spawnPoint);
+            // print(spawnPoint);
 
-            NetworkObject playerObject = NetworkManager.Singleton.SpawnManager.InstantiateAndSpawn(ArenaPlayer, player, true, true, true, spawnPoint, Quaternion.identity);
+            NetworkObject playerObject = NetworkManager.Singleton.SpawnManager.InstantiateAndSpawn(ArenaPlayer, player, true, true, false, spawnPoint, Quaternion.identity);
             playerCount++;
 
+            playerObject.GetComponent<PlayerController>().SetLocationOwnerRPC(spawnPoint);
+
+            //playerObject.transform.localScale = Vector3.one;
             // playerObject.GetComponent<CharacterController>().enabled = false;
             //playerObject.GetComponent<AnticipatedNetworkTransform>().SetState(spawnPoint, teleportDisabled: false);
             // playerObject.GetComponent<CharacterController>().enabled = true;

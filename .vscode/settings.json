@@ -53,7 +53,9 @@
     },
     "dotnet.defaultSolution": "networkingModule.sln",
     "cSpell.words": [
+        "Despawn",
         "Dont",
-        "Mathf"
+        "Mathf",
+        "Reanticipate"
     ]
 }
