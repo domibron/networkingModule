@@ -5,6 +5,7 @@ using TMPro;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 public class PreGameCanvas : NetworkBehaviour
 {
@@ -13,6 +14,13 @@ public class PreGameCanvas : NetworkBehaviour
     public GameObject DisconnectReason;
 
     public TMP_Text PlayerCount;
+    public TMP_Text RoundStats;
+
+    public Image TimerImage;
+
+    public float SecondsToWaitBeforeStarting = 30f;
+
+    private NetworkVariable<float> _timer = new NetworkVariable<float>();
 
     public NetworkVariable<int> PlayerCountNumber = new NetworkVariable<int>(0);
 
@@ -29,7 +37,45 @@ public class PreGameCanvas : NetworkBehaviour
         PlayerCount.text = "Players\n" + PlayerCountNumber.Value;
 
         PlayerCountNumber.OnValueChanged += UpdatePlayerCount;
+        _timer.OnValueChanged += UpdateTimer;
 
+
+    }
+
+    private void UpdateTimer(float previousValue, float newValue)
+    {
+        TimerImage.fillAmount = newValue / SecondsToWaitBeforeStarting;
+    }
+
+    void OnDisable()
+    {
+        NetworkManager.Singleton.OnConnectionEvent -= OnConnectionEvent;
+        NetworkManager.Singleton.OnServerStopped -= OnServerStopped;
+    }
+
+    void Update()
+    {
+        RoundStats.text = $"Current round: {GamePersistent.Instance.CurrentRound.Value}\n"
+        + $"P1: {GamePersistent.Instance.PlayerScore.Value.x} | P2: {GamePersistent.Instance.PlayerScore.Value.y}";
+
+        if ((IsServer || IsHost) && PlayerCountNumber.Value >= 2) // ah, this pains me. should be fine for a small game.
+        {
+            _timer.Value = _timer.Value -= Time.deltaTime;
+        }
+        else if (IsServer || IsHost)
+        {
+            _timer.Value = SecondsToWaitBeforeStarting;
+        }
+
+
+    }
+
+    public void ForceStartGame()
+    {
+        if (IsServer || IsHost)
+        {
+            GamePersistent.Instance.StartGame();
+        }
     }
 
     private void OnServerStopped(bool obj)

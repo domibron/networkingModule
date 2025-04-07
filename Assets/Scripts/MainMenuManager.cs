@@ -34,6 +34,8 @@ public class MainMenuManager : MonoBehaviour
     public TMP_Text ConnectingTextDisplay;
 
 
+
+
     public string GameSceneName = "GameScene";
 
     private string _lastMenu;
@@ -44,7 +46,7 @@ public class MainMenuManager : MonoBehaviour
 
     void Awake()
     {
-        // ! THIS LACKS PROPER IMPLEMENTATION.
+        // ! THIS LACKS PROPER IMPLEMENTATION. headless server, need config files and setup implementation.
         if (CustomNetworkManager.IsHeadlessMode())
         {
             CustomNetworkManager.Instance.StartServerIPAndPort("86.10.14.161", (ushort)7777);
