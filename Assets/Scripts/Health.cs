@@ -53,6 +53,7 @@ public class Health : NetworkBehaviour
     [Rpc(SendTo.Server)]
     private void SetHealthServerRPC(float value)
     {
+        // Me no like this, local client to client to server, instead of local client to server to client.
         _currentHealth.Value = value;
     }
 }
