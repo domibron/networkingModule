@@ -37,6 +37,7 @@ public class Health : NetworkBehaviour
     [Rpc(SendTo.Server)]
     private void AddToHealthServerRPC(float amount)
     {
+        print("updating health by" + amount);
         _currentHealth.Value += amount;
 
         if (_currentHealth.Value > MaxHealth)
@@ -55,5 +56,10 @@ public class Health : NetworkBehaviour
     {
         // Me no like this, local client to client to server, instead of local client to server to client.
         _currentHealth.Value = value;
+    }
+
+    public float GetHealthNormalized()
+    {
+        return _currentHealth.Value / MaxHealth;
     }
 }

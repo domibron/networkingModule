@@ -1,8 +1,9 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.Netcode;
 using UnityEngine;
 
-public class PlayerWeaponController : MonoBehaviour
+public class PlayerWeaponController : NetworkBehaviour
 {
     public float BaseWeaponDamage = 35f;
 
@@ -20,11 +21,15 @@ public class PlayerWeaponController : MonoBehaviour
 
     void Update()
     {
+        if (!IsOwner) return;
+
         if (Input.GetKeyDown(KeyCode.Mouse0))
         {
+            print("Fired");
             if (Physics.Raycast(camTransform.position, camTransform.forward, out RaycastHit hit, 999f))
             {
-                hit.collider.GetComponent<Health>()?.AddToHealth(-BaseWeaponDamage);
+                if (hit.transform.GetComponent<NetworkObject>() == null) return;
+                GamePersistent.Instance.DamagePlayerWithIDServerRPC(hit.transform.GetComponent<NetworkObject>().OwnerClientId, BaseWeaponDamage);
             }
 
         }

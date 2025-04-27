@@ -22,6 +22,8 @@ public class GamePersistent : NetworkBehaviour
 
     public NetworkObject ArenaPlayer;
 
+    // public NetworkVariable<Dictionary<ulong, NetworkObject>> ArenaObjects;
+
     // TODO can turn this into rpc calls and let client calculate all this.
 
 
@@ -146,6 +148,20 @@ public class GamePersistent : NetworkBehaviour
             //playerObject.GetComponent<AnticipatedNetworkTransform>().SetState(spawnPoint, teleportDisabled: false);
             // playerObject.GetComponent<CharacterController>().enabled = true;
 
+        }
+    }
+
+    [Rpc(SendTo.Server)]
+    public void DamagePlayerWithIDServerRPC(ulong playerID, float damage)
+    {
+        print("Seeking target player");
+        if (!NetworkManager.Singleton.ConnectedClients.ContainsKey(playerID)) return;
+
+        NetworkClient playerClient = NetworkManager.Singleton.ConnectedClients[playerID];
+
+        foreach (var ownedObj in playerClient.OwnedObjects)
+        {
+            ownedObj.GetComponent<Health>()?.AddToHealth(-damage);
         }
     }
 }
