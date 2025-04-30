@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using Unity.Netcode;
@@ -27,6 +28,14 @@ public class PlayerController : NetworkBehaviour
     private Health _health;
 
     public float TickDamageAmount = 5f;
+
+    private Vector3 _velocity;
+
+    public float JumpHeight = 3f;
+
+    public float Gravity = -(9.81f * 2f);
+
+    private bool _isGrounded;
 
     void Awake()
     {
@@ -71,27 +80,15 @@ public class PlayerController : NetworkBehaviour
         if (IsHost || IsServer) SortPlayerStuffOnServer();
 
         if (!IsOwner) return;
+        HandleLook();
+        HandleMovement();
+        HandleGroundCheck();
+        HandleGravity();
+        HandleJumping();
 
-        Vector2 mouseInput = new Vector2(Input.GetAxisRaw("Mouse X"), Input.GetAxisRaw("Mouse Y"));
-
-        transform.Rotate(0, mouseInput.x * Sensitivity, 0);
-
-        camYRotation -= mouseInput.y * Sensitivity;
-
-        camYRotation = Mathf.Clamp(camYRotation, -80, 80);
-
-        camTransform.localRotation = Quaternion.Euler(camYRotation, 0, 0);
+        _cc.Move(_velocity * Time.deltaTime);
 
 
-        Vector3 input = new Vector3(Input.GetAxisRaw("Horizontal"), 0, Input.GetAxisRaw("Vertical"));
-
-        Vector3 inputAppliedToRotation = transform.forward * input.z + transform.right * input.x;
-
-        Vector3 PlayerMovementDirection = inputAppliedToRotation.normalized * Speed * Time.deltaTime;
-
-        _cc.Move(PlayerMovementDirection);
-
-        VerifyLegalMoveServerRPC(transform.position);
         // _netTransform.
 
         if (CSGasEffectTimer.Value > 0)
@@ -104,6 +101,55 @@ public class PlayerController : NetworkBehaviour
         }
 
 
+    }
+
+    private void HandleGroundCheck()
+    {
+        _isGrounded = Physics.Raycast(transform.position, -transform.up, 1.1f);
+    }
+
+    private void HandleGravity()
+    {
+        if (_isGrounded)
+        {
+            _velocity.y = -2f;
+        }
+        else
+        {
+            _velocity.y += Gravity * Time.deltaTime;
+        }
+    }
+
+    private void HandleJumping()
+    {
+        if (Input.GetKeyDown(KeyCode.Space) && _isGrounded)
+            _velocity.y = Mathf.Sqrt(JumpHeight * -2f * Gravity);
+    }
+
+    private void HandleMovement()
+    {
+        Vector3 input = new Vector3(Input.GetAxisRaw("Horizontal"), 0, Input.GetAxisRaw("Vertical"));
+
+        Vector3 inputAppliedToRotation = transform.forward * input.z + transform.right * input.x;
+
+        Vector3 PlayerMovementDirection = inputAppliedToRotation.normalized * Speed * Time.deltaTime;
+
+        _cc.Move(PlayerMovementDirection);
+
+        VerifyLegalMoveServerRPC(transform.position, _velocity);
+    }
+
+    private void HandleLook()
+    {
+        Vector2 mouseInput = new Vector2(Input.GetAxisRaw("Mouse X"), Input.GetAxisRaw("Mouse Y"));
+
+        transform.Rotate(0, mouseInput.x * Sensitivity, 0);
+
+        camYRotation -= mouseInput.y * Sensitivity;
+
+        camYRotation = Mathf.Clamp(camYRotation, -80, 80);
+
+        camTransform.localRotation = Quaternion.Euler(camYRotation, 0, 0);
     }
 
     private void SortPlayerStuffOnServer()
@@ -155,18 +201,30 @@ public class PlayerController : NetworkBehaviour
 
 
     [Rpc(SendTo.Server)]
-    private void VerifyLegalMoveServerRPC(Vector3 pos)
+    private void VerifyLegalMoveServerRPC(Vector3 pos, Vector3 velocity)
     {
         // TODO remove the yVel and calc separately.
         // float yVel = pos.y - _lastPos.Value.y;
 
+        Vector3 lastPos = _lastPos.Value;
+
+        lastPos.y = 0f;
+
+        Vector3 currentPos = pos;
+
+        currentPos.y = 0;
+
+        // TODO do something with velocity
 
 
-        if (Vector3.Distance(_lastPos.Value, pos) > Speed * (Time.deltaTime * 2f) + 0.5f)
+        if (Vector3.Distance(lastPos, currentPos) > Speed * (Time.deltaTime * 2f) + 0.5f)
         {
             // correct the move.
             // TODO time.deltaTime * 2 needs to be replaced with ping delay from server to client and client to server to client
-            Vector3 newPos = _lastPos.Value + (pos - _lastPos.Value).normalized * Speed * (Time.deltaTime * 2f);
+            Vector3 newPos = lastPos + (currentPos - lastPos).normalized * Speed * (Time.deltaTime * 2f);
+
+            newPos.y = pos.y;
+
             CorrectMoveOwnerRPC(newPos);
             _lastPos.Value = newPos;
         }

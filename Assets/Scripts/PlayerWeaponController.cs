@@ -32,6 +32,8 @@ public class PlayerWeaponController : NetworkBehaviour
 
     public NetworkVariable<float> DoubleDamageTimer = new NetworkVariable<float>(0);
 
+    public LayerMask layerMask;
+
     void Awake()
     {
         _camTransform = GetComponentInChildren<Camera>().transform;
@@ -103,14 +105,20 @@ public class PlayerWeaponController : NetworkBehaviour
             _weaponFireRateCoolDown = 1f / BulletsPerSecond;
 
             print("Fired");
-            if (Physics.Raycast(_camTransform.position, _camTransform.forward, out RaycastHit hit, 999f))
+            if (Physics.Raycast(_camTransform.position, _camTransform.forward, out RaycastHit hit, 999f, layerMask))
             {
                 print(hit.transform.name);
                 Debug.DrawLine(_camTransform.position, hit.point, Color.red, 10f);
 
-                if (hit.transform.GetComponent<NetworkObject>() == null) return;
-                if (hit.transform.GetComponent<NetworkObject>().OwnerClientId == OwnerClientId) return; // TODO Fix player hitting themselves.
-                RoundManager.Instance.DamagePlayerWithIDServerRPC(hit.transform.GetComponent<NetworkObject>().OwnerClientId, BaseWeaponDamage);
+                NetworkObject playerNetObject = hit.transform.root.GetComponent<NetworkObject>();
+
+
+                if (playerNetObject == null) return;
+                if (playerNetObject.OwnerClientId == OwnerClientId) return; // TODO Fix player hitting themselves.
+
+
+                RoundManager.Instance.DamagePlayerWithIDServerRPC(playerNetObject.OwnerClientId,
+                    (hit.collider.gameObject.CompareTag("Head") ? 999f : BaseWeaponDamage));
             }
             else
             {
