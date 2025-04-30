@@ -100,6 +100,7 @@ public class PlayerController : NetworkBehaviour
         HandleGravity();
         HandleJumping();
 
+
         _cc.Move(_velocity * Time.deltaTime);
 
 
@@ -123,7 +124,7 @@ public class PlayerController : NetworkBehaviour
 
     private void HandleGravity()
     {
-        if (_isGrounded)
+        if (_isGrounded && _velocity.y < -2)
         {
             _velocity.y = -2f;
         }
@@ -195,9 +196,16 @@ public class PlayerController : NetworkBehaviour
     [Rpc(SendTo.Owner)]
     private void ConfirmPositionToServerOwnerRPC(Vector3 serverPos)
     {
-        if (Vector3.Distance(transform.position, serverPos) > 2)
+        Vector3 planeOfPos = transform.position;
+
+        serverPos.y = 0;
+
+        planeOfPos.y = 0;
+
+
+        if (Vector3.Distance(planeOfPos, serverPos) > 2)
         {
-            transform.position = serverPos;
+            transform.position = new Vector3(serverPos.x, transform.position.y, serverPos.z);
             print("corrected bad position");
         }
     }

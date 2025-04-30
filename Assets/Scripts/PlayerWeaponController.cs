@@ -92,7 +92,7 @@ public class PlayerWeaponController : NetworkBehaviour
     [Rpc(SendTo.Server)]
     public void AddToCurrentPoolServerRPC(int amount)
     {
-        _currentAmmoInMag.Value += amount;
+        _currentAmmoPool.Value += amount;
     }
 
     [Rpc(SendTo.Server)]

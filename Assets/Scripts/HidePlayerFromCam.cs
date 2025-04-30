@@ -8,6 +8,8 @@ public class HidePlayerFromCam : NetworkBehaviour
 
     public SkinnedMeshRenderer[] MeshRenderersToHide;
 
+    public Collider[] CollidersToDisable;
+
     // Start is called before the first frame update
     void Start()
     {
@@ -29,6 +31,11 @@ public class HidePlayerFromCam : NetworkBehaviour
             foreach (var meshRenderer in MeshRenderersToHide)
             {
                 meshRenderer.enabled = false;
+            }
+
+            foreach (var collider in CollidersToDisable)
+            {
+                collider.enabled = false;
             }
         }
     }

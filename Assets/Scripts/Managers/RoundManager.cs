@@ -138,7 +138,7 @@ public class RoundManager : NetworkBehaviour
                 continue;
             }
 
-            if (health.CurrentHealth.Value < bestHealth.CurrentHealth.Value)
+            if (health.CurrentHealth.Value > bestHealth.CurrentHealth.Value)
             {
                 bestHealth = health;
                 continue;

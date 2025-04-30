@@ -412,7 +412,7 @@ Camera:
     y: 0
     width: 1
     height: 1
-  near clip plane: 0.3
+  near clip plane: 0.01
   far clip plane: 1000
   field of view: 60
   orthographic: 0
@@ -1077,7 +1077,7 @@ CharacterController:
   m_Radius: 0.3
   m_SlopeLimit: 45
   m_StepOffset: 0.3
-  m_SkinWidth: 0.08
+  m_SkinWidth: 0.0001
   m_MinMoveDistance: 0
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!82 &443072228871597497
@@ -1996,6 +1996,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Layer
       value: 7
+      objectReference: {fileID: 0}
+    - target: {fileID: -1781356600409242780, guid: dfca01276532024448b396cf39c550a7,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: -1781356600409242780, guid: dfca01276532024448b396cf39c550a7,
         type: 3}
@@ -2926,6 +2931,12 @@ MonoBehaviour:
   - {fileID: 5338195922143463734}
   - {fileID: 2184681490040311544}
   - {fileID: 6936527503527906115}
+  CollidersToDisable:
+  - {fileID: 8709835004602215410}
+  - {fileID: 5112945889452715741}
+  - {fileID: 3722798917827888746}
+  - {fileID: 4232566621610287888}
+  - {fileID: 3809016921162433439}
 --- !u!4 &6841458518279844754 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: dfca01276532024448b396cf39c550a7,
