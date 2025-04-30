@@ -977,6 +977,8 @@ MonoBehaviour:
   TickDamageAmount: 5
   JumpHeight: 1.5
   Gravity: -19.62
+  FootStep: {fileID: 8300000, guid: f0665399d06b1b745a1a7ac16e050fa2, type: 3}
+  StepRate: 2
 --- !u!114 &7578027364524346736
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2875,6 +2877,13 @@ MonoBehaviour:
     TransitionDuration: 0
     TriggerNameHash: 125937960
     TransitionIndex: 0
+  - IsCrossFadeExit: 0
+    Layer: 0
+    OriginatingState: 1011442789
+    DestinationState: -391498677
+    TransitionDuration: 0
+    TriggerNameHash: -1525363869
+    TransitionIndex: 1
   m_Animator: {fileID: 1625855335860412833}
 --- !u!95 &1625855335860412833
 Animator:

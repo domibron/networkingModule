@@ -41,6 +41,13 @@ public class PlayerController : NetworkBehaviour
 
     private Animator _animator;
 
+    public AudioClip FootStep;
+    private AudioSource _audioSource;
+
+    public float StepRate = 2f;
+
+    private float _stepTimer = 0.1f;
+
     void Awake()
     {
         _cc = GetComponent<CharacterController>();
@@ -51,6 +58,8 @@ public class PlayerController : NetworkBehaviour
         _health = GetComponent<Health>();
 
         _animator = GetComponentInChildren<Animator>();
+
+        _audioSource = GetComponent<AudioSource>();
     }
 
 
@@ -145,6 +154,14 @@ public class PlayerController : NetworkBehaviour
 
         _animator.SetFloat("XVel", input.x);
         _animator.SetFloat("ZVel", input.z);
+
+        if (_stepTimer > 0f && input.normalized.magnitude > 0 && _isGrounded) _stepTimer -= Time.deltaTime;
+        else if (_stepTimer <= 0f && _isGrounded)
+        {
+            _stepTimer += 1 / StepRate;
+            _audioSource.PlayOneShot(FootStep, 0.8f);
+        }
+
 
         VerifyLegalMoveServerRPC(transform.position, _velocity);
     }

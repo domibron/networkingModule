@@ -187,7 +187,7 @@ public class GamePersistent : NetworkBehaviour
             // no one wins. no point
 
 
-            DisplayDrawRPC();
+            DisplayDrawEveryoneRPC();
             return;
         }
 
@@ -223,7 +223,7 @@ public class GamePersistent : NetworkBehaviour
     }
 
     [Rpc(SendTo.Everyone)]
-    private void DisplayDrawRPC()
+    private void DisplayDrawEveryoneRPC()
     {
         StartCoroutine(DisplayDraw());
     }
