@@ -17,12 +17,18 @@ public class GasGrenade : NetworkBehaviour
 
     private NetworkVariable<bool> _isActive = new NetworkVariable<bool>(false);
 
+    private AudioSource _audioSource;
+
+    public AudioClip SmokeClip;
+
     // Start is called before the first frame update
     void Start()
     {
         _activationDelay = DelayBeforeActivation;
         ParticleSystem.Stop();
         ShereCollider.enabled = false;
+
+        _audioSource = GetComponentInParent<AudioSource>();
     }
 
     // Update is called once per frame
@@ -37,6 +43,12 @@ public class GasGrenade : NetworkBehaviour
 
             if (!ShereCollider.enabled) ShereCollider.enabled = true;
 
+            if (!_audioSource.isPlaying)
+            {
+                _audioSource.clip = SmokeClip;
+                _audioSource.loop = true;
+                _audioSource.Play();
+            }
 
             return;
 
@@ -53,6 +65,10 @@ public class GasGrenade : NetworkBehaviour
             ParticleSystem.Play();
 
             ShereCollider.enabled = true;
+
+            _audioSource.clip = SmokeClip;
+            _audioSource.loop = true;
+            _audioSource.Play();
 
             StartCoroutine(DestroyAfterTime(LifeTimeAfterActivation));
         }
@@ -75,4 +91,5 @@ public class GasGrenade : NetworkBehaviour
                 RoundManager.Instance.GiveCSGasEffectToPlayerWithIDServerRPC(other.gameObject.GetComponent<NetworkObject>().OwnerClientId);
         }
     }
+
 }

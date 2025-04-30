@@ -24,9 +24,14 @@ public class GrenadeWeaponManager : NetworkBehaviour
 
     private float _throwForcePercentage;
 
+    public AudioClip GrenadeOut;
+
+    private AudioSource _audioSource;
+
     void Awake()
     {
         _camTransform = GetComponentInChildren<Camera>().transform;
+        _audioSource = GetComponent<AudioSource>();
     }
 
     // Start is called before the first frame update
@@ -62,6 +67,12 @@ public class GrenadeWeaponManager : NetworkBehaviour
         grenade.GetComponent<Rigidbody>().AddForce(forceToApply, ForceMode.Impulse);
     }
 
+    [Rpc(SendTo.Everyone)]
+    void PlayThrowSoundEveryOneRPC()
+    {
+        _audioSource.PlayOneShot(GrenadeOut);
+    }
+
     // Update is called once per frame
     void Update()
     {
@@ -89,6 +100,8 @@ public class GrenadeWeaponManager : NetworkBehaviour
             if (GrenadeCount.Value > 0)
             {
                 // throw
+                PlayThrowSoundEveryOneRPC();
+
                 SpawnGrenadeServerRPC(_camTransform.position, _camTransform.forward * Mathf.Lerp(MinThrowForce, MaxThrowForce, _throwForcePercentage));
 
                 AddToGrenadeCountServerRPC(-1);

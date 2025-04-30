@@ -38,9 +38,26 @@ public class PlayerWeaponController : NetworkBehaviour
     public NetworkObject BulletHoleDecal;
     public NetworkObject LineTrace;
 
+    private AudioSource _audioSource;
+
+    public AudioClip FireBullet;
+    public AudioClip Reloading;
+    public AudioClip ReloadCoverMe;
+    public AudioClip GunClick;
+
+    private enum AudioToPlay
+    {
+        FireBullet,
+        Reloading,
+        ReloadCoverMe,
+        GunClick,
+    }
+
     void Awake()
     {
         _camTransform = GetComponentInChildren<Camera>().transform;
+
+        _audioSource = GetComponent<AudioSource>();
     }
 
     void Start()
@@ -80,10 +97,41 @@ public class PlayerWeaponController : NetworkBehaviour
         _currentAmmoInMag.Value += amount;
     }
 
+    [Rpc(SendTo.Everyone)]
+    private void PlayWeaponSFXEveryOneRPC(AudioToPlay audioToPlay)
+    {
+        print(audioToPlay);
+
+        AudioClip clipToPlay = null;
+
+        switch (audioToPlay)
+        {
+            case AudioToPlay.FireBullet:
+                clipToPlay = FireBullet;
+                break;
+
+            case AudioToPlay.Reloading:
+                clipToPlay = Reloading;
+                break;
+
+            case AudioToPlay.ReloadCoverMe:
+                clipToPlay = ReloadCoverMe;
+                break;
+
+            case AudioToPlay.GunClick:
+                clipToPlay = GunClick;
+                break;
+        }
+
+        _audioSource.PlayOneShot(clipToPlay);
+    }
+
+
+
     public void ReloadMagWithPool()
     {
         if (_reloadCoroutine != null || _isReloading || _currentAmmoPool.Value <= 0) return;
-
+        PlayWeaponSFXEveryOneRPC(AudioToPlay.ReloadCoverMe);
         _reloadCoroutine = StartCoroutine(ReloadCoroutine());
     }
 
@@ -112,6 +160,9 @@ public class PlayerWeaponController : NetworkBehaviour
         {
             AddToCurrentAmmoInMagServerRPC(-1);
             _weaponFireRateCoolDown = 1f / BulletsPerSecond;
+
+            PlayWeaponSFXEveryOneRPC(AudioToPlay.FireBullet);
+
 
             print("Fired");
             if (Physics.Raycast(_camTransform.position, _camTransform.forward, out RaycastHit hit, 999f, LayerMask))
@@ -143,10 +194,15 @@ public class PlayerWeaponController : NetworkBehaviour
                 SpawnLineTraceServerRPC(_camTransform.position, _camTransform.forward * 999f);
             }
         }
+        else if (Input.GetKeyDown(KeyCode.Mouse0) && _weaponFireRateCoolDown <= 0f && _currentAmmoInMag.Value <= 0 && !_isReloading)
+        {
+            PlayWeaponSFXEveryOneRPC(AudioToPlay.GunClick);
+        }
 
         if (Input.GetKeyDown(KeyCode.R))
         {
             ReloadMagWithPool();
+
         }
     }
 
@@ -200,6 +256,7 @@ public class PlayerWeaponController : NetworkBehaviour
 
     private IEnumerator ReloadCoroutine()
     {
+        PlayWeaponSFXEveryOneRPC(AudioToPlay.Reloading);
         _isReloading = true;
 
         yield return new WaitForSeconds(ReloadSpeed);

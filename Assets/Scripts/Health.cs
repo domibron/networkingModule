@@ -12,9 +12,14 @@ public class Health : NetworkBehaviour
 
     public ArenaPlayerUI ArenaPlayerUI; // BAD, coupling the code dammit.
 
+    public AudioClip HurtClip;
+    public AudioClip DeathClip;
+
+    private AudioSource _audioSource;
+
     void Start()
     {
-
+        _audioSource = GetComponent<AudioSource>();
     }
 
     public override void OnNetworkSpawn()
@@ -51,6 +56,7 @@ public class Health : NetworkBehaviour
         else if (CurrentHealth.Value <= 0)
         {
             // GamePersistent.Instance.EndGame(playerID);
+            PlayDeathSFXEveryOneRPC();
             RoundManager.Instance.PlayerDiedServerRPC(OwnerClientId);
             GetComponent<NetworkObject>().Despawn();
         }
@@ -59,7 +65,20 @@ public class Health : NetworkBehaviour
     [Rpc(SendTo.Owner)]
     private void TakenDamageOwnerRPC()
     {
+        PlayHurtSoundEveryOneRPC();
         ArenaPlayerUI.TakeDamage();
+    }
+
+    [Rpc(SendTo.Everyone)]
+    void PlayHurtSoundEveryOneRPC()
+    {
+        _audioSource.PlayOneShot(HurtClip, 0.8f);
+    }
+
+    [Rpc(SendTo.Everyone)]
+    void PlayDeathSFXEveryOneRPC()
+    {
+        RoundManager.Instance.GetComponent<AudioSource>().PlayOneShot(DeathClip);
     }
 
     [Rpc(SendTo.Server)]

@@ -83,6 +83,11 @@ public class MainMenuManager : MonoBehaviour
             loadingTimer = 0f;
         }
 
+        if (Cursor.lockState != CursorLockMode.None) Cursor.lockState = CursorLockMode.None;
+
+        if (!Cursor.visible) Cursor.visible = true;
+
+
     }
 
     private void OnTransportFailure()

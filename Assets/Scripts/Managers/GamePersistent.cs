@@ -144,6 +144,19 @@ public class GamePersistent : NetworkBehaviour
         //     // Dont think we need this. since somewhere in unity docs said it does scene syncing automatically.
         //     //NetworkManager.Singleton.SceneManager.LoadScene("GameScene", LoadSceneMode.Single);
         // }
+
+        if (InRound.Value)
+        {
+            if (Cursor.lockState != CursorLockMode.Locked) Cursor.lockState = CursorLockMode.Locked;
+
+            if (Cursor.visible) Cursor.visible = false;
+        }
+        else
+        {
+            if (Cursor.lockState != CursorLockMode.None) Cursor.lockState = CursorLockMode.None;
+
+            if (!Cursor.visible) Cursor.visible = true;
+        }
     }
 
     [Rpc(SendTo.Server)]
