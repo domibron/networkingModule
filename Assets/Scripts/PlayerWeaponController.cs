@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.Mathematics;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -32,7 +33,10 @@ public class PlayerWeaponController : NetworkBehaviour
 
     public NetworkVariable<float> DoubleDamageTimer = new NetworkVariable<float>(0);
 
-    public LayerMask layerMask;
+    public LayerMask LayerMask;
+
+    public NetworkObject BulletHoleDecal;
+    public NetworkObject LineTrace;
 
     void Awake()
     {
@@ -100,21 +104,32 @@ public class PlayerWeaponController : NetworkBehaviour
             ArenaPlayerUI.AmmoText.text = $"[Reloading]\n{_currentAmmoPool.Value}";
         }
 
+        /*
+        I apologise in advance for the terrible code, only god can save it now.
+        it ain't broke, don't fix.
+        */
         if (Input.GetKey(KeyCode.Mouse0) && _weaponFireRateCoolDown <= 0f && _currentAmmoInMag.Value > 0 && !_isReloading)
         {
             AddToCurrentAmmoInMagServerRPC(-1);
             _weaponFireRateCoolDown = 1f / BulletsPerSecond;
 
             print("Fired");
-            if (Physics.Raycast(_camTransform.position, _camTransform.forward, out RaycastHit hit, 999f, layerMask))
+            if (Physics.Raycast(_camTransform.position, _camTransform.forward, out RaycastHit hit, 999f, LayerMask))
             {
                 print(hit.transform.name);
                 Debug.DrawLine(_camTransform.position, hit.point, Color.red, 10f);
 
                 NetworkObject playerNetObject = hit.transform.root.GetComponent<NetworkObject>();
 
+                SpawnLineTraceServerRPC(_camTransform.position, hit.point - _camTransform.position);
 
-                if (playerNetObject == null) return;
+                if (playerNetObject == null)
+                {
+                    SpawnBulletHoleServerRPC(hit.point, hit.normal);
+
+                    return;
+
+                }
                 if (playerNetObject.OwnerClientId == OwnerClientId) return; // TODO Fix player hitting themselves.
 
                 float damage = BaseWeaponDamage * (DoubleDamageTimer.Value > 0 ? 2f : 1f);
@@ -125,6 +140,7 @@ public class PlayerWeaponController : NetworkBehaviour
             else
             {
                 Debug.DrawLine(_camTransform.position, _camTransform.position + _camTransform.forward * 999f, Color.red, 10f);
+                SpawnLineTraceServerRPC(_camTransform.position, _camTransform.forward * 999f);
             }
         }
 
@@ -134,6 +150,21 @@ public class PlayerWeaponController : NetworkBehaviour
         }
     }
 
+    [Rpc(SendTo.Server)]
+    private void SpawnBulletHoleServerRPC(Vector3 targetPoint, Vector3 surfaceNormal)
+    {
+        Quaternion rotation = Quaternion.FromToRotation(BulletHoleDecal.transform.forward, -surfaceNormal);
+
+        NetworkManager.Singleton.SpawnManager.InstantiateAndSpawn(BulletHoleDecal, position: targetPoint + (surfaceNormal.normalized * 0.01f), rotation: rotation);
+    }
+
+    [Rpc(SendTo.Server)]
+    private void SpawnLineTraceServerRPC(Vector3 startPoint, Vector3 endPoint)
+    {
+        NetworkObject netObject = NetworkManager.Singleton.SpawnManager.InstantiateAndSpawn(LineTrace, position: startPoint, rotation: quaternion.identity);
+
+        netObject.GetComponent<LineRenderer>().SetPosition(1, endPoint);
+    }
 
     private void SortPlayerStuffOnServer()
     {
