@@ -9857,9 +9857,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: eb754f8a8d8129c4a80eb2d2bffd1073, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  RoundDuration: 300
   RoundTimer:
     m_InternalValue: 300
+  RoundDuration: 300
   RoundTimerText: {fileID: 1468572644}
   CollectableObjects:
   - {fileID: 7920560898784853029, guid: 0f1715c702d108b4d9743303ef6183d5, type: 3}
@@ -9867,8 +9867,8 @@ MonoBehaviour:
   - {fileID: 6981913737118664424, guid: 2d7461ca65efc504ca790b755b8fdbf0, type: 3}
   - {fileID: 5694129453993762437, guid: b86af6875a770a14c8d6d0e567e03e93, type: 3}
   MaxSpawnedCollectables: 4
-  MaxTimeToWaitToSpawn: 30
-  MinTimeToWaitToSpawn: 10
+  MaxTimeToWaitToSpawn: 15
+  MinTimeToWaitToSpawn: 5
   CollectableSpawnPoints:
   - {fileID: 33687300}
   - {fileID: 1354500234}

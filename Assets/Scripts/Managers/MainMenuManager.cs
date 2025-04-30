@@ -4,14 +4,18 @@ using Unity.Netcode;
 using Unity.Netcode.Transports.UTP;
 using UnityEngine;
 
-
+#region UIItem
 [Serializable]
 public class UIItem
 {
     public string UIName;
     public GameObject UIObject;
 }
+#endregion
 
+/// <summary>
+/// Handles the main menu UI and passing data to connect to servers.
+/// </summary>
 public class MainMenuManager : MonoBehaviour
 {
 
@@ -35,33 +39,35 @@ public class MainMenuManager : MonoBehaviour
 
 
 
-
     public string GameSceneName = "GameScene";
 
     private string _lastMenu;
 
+    private float _loadingTimer = 0f;
 
-    private float loadingTimer = 0f;
-
-
+    #region Awake
     void Awake()
     {
         // ! THIS LACKS PROPER IMPLEMENTATION. headless server, need config files and setup implementation.
         if (CustomNetworkManager.IsHeadlessMode())
         {
-            CustomNetworkManager.Instance.StartServerIPAndPort("86.10.14.161", (ushort)7777);
+            CustomNetworkManager.Instance.StartServerIPAndPort("127.0.0.1", (ushort)7777);
         }
 
         ShowMenu("mainmenu");
     }
+    #endregion
 
+    #region Start
     void Start()
     {
         CustomNetworkManager.Instance.OnConnectionEvent += OnConnectionEvent;
         CustomNetworkManager.Instance.OnServerStopped += OnServerStopped;
         CustomNetworkManager.Instance.OnTransportFailure += OnTransportFailure;
     }
+    #endregion
 
+    #region OnDisable
     void OnDisable()
     {
         // we make sure that the net manager, a object that is persistent does not have a a null reference.
@@ -69,18 +75,20 @@ public class MainMenuManager : MonoBehaviour
         CustomNetworkManager.Instance.OnServerStopped -= OnServerStopped;
         CustomNetworkManager.Instance.OnTransportFailure -= OnTransportFailure;
     }
+    #endregion
 
+    #region Update
     void Update()
     {
         if (IsInMenu("connecting"))
         {
-            loadingTimer += Time.deltaTime;
+            _loadingTimer += Time.deltaTime;
             ConnectingTextDisplay.text = $"Connecting to {CustomNetworkManager.Instance.GetComponent<UnityTransport>().ConnectionData.Address}"
-            + $":{CustomNetworkManager.Instance.GetComponent<UnityTransport>().ConnectionData.Port}\nDuration: {loadingTimer.ToString("F1")}";
+            + $":{CustomNetworkManager.Instance.GetComponent<UnityTransport>().ConnectionData.Port}\nDuration: {_loadingTimer.ToString("F1")}";
         }
         else
         {
-            loadingTimer = 0f;
+            _loadingTimer = 0f;
         }
 
         if (Cursor.lockState != CursorLockMode.None) Cursor.lockState = CursorLockMode.None;
@@ -89,14 +97,18 @@ public class MainMenuManager : MonoBehaviour
 
 
     }
+    #endregion
 
+    #region OnTransportFailure
     private void OnTransportFailure()
     {
         print("Transport failure");
         NetworkManager.Singleton.Shutdown();
         ShowMenu(_lastMenu);
     }
+    #endregion
 
+    #region OnServerStopped
     private void OnServerStopped(bool obj)
     {
         print(obj);
@@ -104,7 +116,9 @@ public class MainMenuManager : MonoBehaviour
         ShowMenu(_lastMenu);
 
     }
+    #endregion
 
+    #region OnConnectionEvent
     private void OnConnectionEvent(NetworkManager manager, ConnectionEventData data)
     {
         // we can ignore this for now.
@@ -120,15 +134,18 @@ public class MainMenuManager : MonoBehaviour
             Disconnected(manager.DisconnectReason);
         }
     }
+    #endregion
 
+    #region LeaveServer
     public void LeaveServer()
     {
-        loadingTimer = 0f;
+        _loadingTimer = 0f;
         NetworkManager.Singleton.Shutdown();
         ShowMenu(_lastMenu);
     }
+    #endregion
 
-
+    #region ConnectedToServer
     public void ConnectedToServer()
     {
         _lastMenu = GetActiveMenu();
@@ -151,7 +168,9 @@ public class MainMenuManager : MonoBehaviour
             print(e.Message);
         }
     }
+    #endregion
 
+    #region HostServer
     public void HostServer()
     {
         _lastMenu = GetActiveMenu();
@@ -177,7 +196,9 @@ public class MainMenuManager : MonoBehaviour
             print(e.Message);
         }
     }
+    #endregion
 
+    #region ShowMenu
     public void ShowMenu(string uiName)
     {
         foreach (var item in MainMenuUIs)
@@ -186,7 +207,9 @@ public class MainMenuManager : MonoBehaviour
             else item.UIObject.SetActive(false);
         }
     }
+    #endregion
 
+    #region IsInMenu
     public bool IsInMenu(string uiName)
     {
         foreach (var item in MainMenuUIs)
@@ -196,7 +219,9 @@ public class MainMenuManager : MonoBehaviour
 
         return false;
     }
+    #endregion
 
+    #region GetActiveMenu
     public string GetActiveMenu()
     {
         foreach (var item in MainMenuUIs)
@@ -206,7 +231,9 @@ public class MainMenuManager : MonoBehaviour
 
         return "mainmenu";
     }
+    #endregion
 
+    #region Disconnected
     public void Disconnected(string reason)
     {
         ShowMenu("disconnected");
@@ -215,10 +242,13 @@ public class MainMenuManager : MonoBehaviour
 
         DisconnectedTextDisplay.text = reason;
     }
+    #endregion
 
+    #region QuitGame
     public void QuitGame()
     {
         NetworkManager.Singleton.Shutdown();
         Application.Quit();
     }
+    #endregion
 }

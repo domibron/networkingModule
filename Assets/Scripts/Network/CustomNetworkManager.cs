@@ -11,6 +11,7 @@ public class CustomNetworkManager : NetworkManager
 
     private bool _connected = false;
 
+    #region Awake
     void Awake()
     {
         if (Instance != null && Instance != this)
@@ -22,13 +23,17 @@ public class CustomNetworkManager : NetworkManager
             Instance = this;
         }
     }
+    #endregion
 
+    #region Start
     void Start()
     {
         OnConnectionEvent += OnConnectionEventTriggered;
         NetworkManager.Singleton.ConnectionApprovalCallback = ApprovalCheck;
     }
+    #endregion
 
+    #region Update
     void Update()
     {
         if (IsConnectedClient && _connected == false) _connected = true;
@@ -41,8 +46,9 @@ public class CustomNetworkManager : NetworkManager
         }
 
     }
+    #endregion
 
-
+    #region ConnectToIPAndPort
     public void ConnectToIPAndPort(string ip, ushort port)
     {
         NetworkManager.Singleton.GetComponent<UnityTransport>().SetConnectionData(
@@ -52,7 +58,9 @@ public class CustomNetworkManager : NetworkManager
 
         StartClient();
     }
+    #endregion
 
+    #region 
     public void HostIPAndPort(string ip, ushort port)
     {
         NetworkManager.Singleton.GetComponent<UnityTransport>().SetConnectionData(
@@ -63,7 +71,9 @@ public class CustomNetworkManager : NetworkManager
 
         StartHost();
     }
+    #endregion
 
+    #region StartServerIPAndPort
     public void StartServerIPAndPort(string ip, ushort port)
     {
         NetworkManager.Singleton.GetComponent<UnityTransport>().SetConnectionData(
@@ -74,8 +84,9 @@ public class CustomNetworkManager : NetworkManager
 
         StartServer();
     }
+    #endregion
 
-
+    #region OnConnectionEventTriggered
     private void OnConnectionEventTriggered(NetworkManager manager, ConnectionEventData data)
     {
         if (!manager.IsServer && !manager.IsHost) return;
@@ -85,18 +96,24 @@ public class CustomNetworkManager : NetworkManager
             KickPlayer(data.ClientId);
         }
     }
+    #endregion
 
+    #region KickPlayer
     [Rpc(SendTo.Server)]
     private void KickPlayer(ulong clientId)
     {
         DisconnectClient(clientId, "Kicked because the server was full!");
     }
+    #endregion
 
+    #region IsHeadlessMode
     public static bool IsHeadlessMode()
     {
         return Application.isBatchMode;
     }
+    #endregion
 
+    #region ApprovalCheck
     private void ApprovalCheck(NetworkManager.ConnectionApprovalRequest request, NetworkManager.ConnectionApprovalResponse response)
     {
         if (Singleton.ConnectedClientsIds.Count >= 2)
@@ -112,4 +129,5 @@ public class CustomNetworkManager : NetworkManager
 
         response.Pending = false;
     }
+    #endregion
 }

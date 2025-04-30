@@ -17,20 +17,23 @@ public class Health : NetworkBehaviour
 
     private AudioSource _audioSource;
 
+    #region Start
     void Start()
     {
         _audioSource = GetComponent<AudioSource>();
     }
+    #endregion
 
+    #region OnNetworkSpawn
     public override void OnNetworkSpawn()
     {
         base.OnNetworkSpawn();
 
-        CurrentHealth.OnValueChanged += OnCurrentHealthChanged;
-
         ResetHealthServerRPC();
     }
+    #endregion
 
+    #region Update
     void Update()
     {
         if (transform.position.y < -20f)
@@ -38,24 +41,24 @@ public class Health : NetworkBehaviour
             AddToHealth(-10);
         }
     }
+    #endregion
 
-
-    private void OnCurrentHealthChanged(float previousValue, float newValue)
-    {
-
-    }
-
+    #region AddToHealth
     public void AddToHealth(float amount)
     {
         AddToHealthServerRPC(amount);
     }
+    #endregion
 
+    #region ResetHealthServerRPC
     [Rpc(SendTo.Server)]
     private void ResetHealthServerRPC()
     {
         CurrentHealth.Value = MaxHealth;
     }
+    #endregion
 
+    #region AddToHealthServerRPC
     [Rpc(SendTo.Server)]
     private void AddToHealthServerRPC(float amount)
     {
@@ -76,28 +79,38 @@ public class Health : NetworkBehaviour
             GetComponent<NetworkObject>().Despawn();
         }
     }
+    #endregion
 
+    #region TakenDamageOwnerRPC
     [Rpc(SendTo.Owner)]
     private void TakenDamageOwnerRPC()
     {
         PlayHurtSoundEveryOneRPC();
         ArenaPlayerUI.TakeDamage();
     }
+    #endregion
 
+    #region PlayHurtSoundEveryOneRPC
     [Rpc(SendTo.Everyone)]
     void PlayHurtSoundEveryOneRPC()
     {
         _audioSource.PlayOneShot(HurtClip, 0.8f);
     }
+    #endregion
 
+    #region PlayDeathSFXEveryOneRPC
     [Rpc(SendTo.Everyone)]
     void PlayDeathSFXEveryOneRPC()
     {
+        // I think this is playing the audio on EVERYONE, instead of a specific player or location. :/
         RoundManager.Instance.GetComponent<AudioSource>().PlayOneShot(DeathClip);
     }
+    #endregion
 
+    #region GetHealthNormalized
     public float GetHealthNormalized()
     {
         return CurrentHealth.Value / MaxHealth;
     }
+    #endregion
 }

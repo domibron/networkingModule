@@ -45,6 +45,7 @@ public class PlayerWeaponController : NetworkBehaviour
     public AudioClip ReloadCoverMe;
     public AudioClip GunClick;
 
+    #region AudioToPlay
     private enum AudioToPlay
     {
         FireBullet,
@@ -52,9 +53,11 @@ public class PlayerWeaponController : NetworkBehaviour
         ReloadCoverMe,
         GunClick,
     }
+    #endregion
 
     private Animator _animator;
 
+    #region Awake
     void Awake()
     {
         _camTransform = GetComponentInChildren<Camera>().transform;
@@ -63,44 +66,51 @@ public class PlayerWeaponController : NetworkBehaviour
 
         _animator = GetComponentInChildren<Animator>();
     }
+    #endregion
 
-    void Start()
-    {
-
-    }
-
+    #region OnNetworkSpawn
     public override void OnNetworkSpawn()
     {
         base.OnNetworkSpawn();
 
         SetUpAmmoServerRPC();
     }
+    #endregion
 
+    #region SetDoubleDamageTimerServerRPC
     [Rpc(SendTo.Server)]
     public void SetDoubleDamageTimerServerRPC(float duration)
     {
         DoubleDamageTimer.Value = duration;
     }
+    #endregion
 
+    #region SetUpAmmoServerRPC
     [Rpc(SendTo.Server)]
     public void SetUpAmmoServerRPC()
     {
         _currentAmmoInMag.Value = _maxMagazineSize;
         _currentAmmoPool.Value = _startingAmmoPool;
     }
+    #endregion
 
+    #region AddToCurrentPoolServerRPC
     [Rpc(SendTo.Server)]
     public void AddToCurrentPoolServerRPC(int amount)
     {
         _currentAmmoPool.Value += amount;
     }
+    #endregion
 
+    #region AddToCurrentAmmoInMagServerRPC
     [Rpc(SendTo.Server)]
     public void AddToCurrentAmmoInMagServerRPC(int amount)
     {
         _currentAmmoInMag.Value += amount;
     }
+    #endregion
 
+    #region PlayWeaponSFXEveryOneRPC
     [Rpc(SendTo.Everyone)]
     private void PlayWeaponSFXEveryOneRPC(AudioToPlay audioToPlay)
     {
@@ -129,16 +139,19 @@ public class PlayerWeaponController : NetworkBehaviour
 
         _audioSource.PlayOneShot(clipToPlay);
     }
+    #endregion
 
 
-
+    #region ReloadMagWithPool
     public void ReloadMagWithPool()
     {
         if (_reloadCoroutine != null || _isReloading || _currentAmmoPool.Value <= 0) return;
         PlayWeaponSFXEveryOneRPC(AudioToPlay.ReloadCoverMe);
         _reloadCoroutine = StartCoroutine(ReloadCoroutine());
     }
+    #endregion
 
+    #region Update
     void Update()
     {
         if (IsHost || IsServer) SortPlayerStuffOnServer();
@@ -214,7 +227,9 @@ public class PlayerWeaponController : NetworkBehaviour
 
         }
     }
+    #endregion
 
+    #region SpawnBulletHoleServerRPC
     [Rpc(SendTo.Server)]
     private void SpawnBulletHoleServerRPC(Vector3 targetPoint, Vector3 surfaceNormal)
     {
@@ -222,7 +237,9 @@ public class PlayerWeaponController : NetworkBehaviour
 
         NetworkManager.Singleton.SpawnManager.InstantiateAndSpawn(BulletHoleDecal, position: targetPoint + (surfaceNormal.normalized * 0.01f), rotation: rotation);
     }
+    #endregion
 
+    #region SpawnLineTraceServerRPC
     [Rpc(SendTo.Server)]
     private void SpawnLineTraceServerRPC(Vector3 startPoint, Vector3 endPoint)
     {
@@ -230,7 +247,9 @@ public class PlayerWeaponController : NetworkBehaviour
 
         netObject.GetComponent<LineRenderer>().SetPosition(1, endPoint);
     }
+    #endregion
 
+    #region SortPlayerStuffOnServer
     private void SortPlayerStuffOnServer()
     {
         if (DoubleDamageTimer.Value > 0)
@@ -243,7 +262,9 @@ public class PlayerWeaponController : NetworkBehaviour
             // remove Icon.
         }
     }
+    #endregion
 
+    #region ReloadMagServerRPC
     [Rpc(SendTo.Server)]
     private void ReloadMagServerRPC()
     {
@@ -262,7 +283,9 @@ public class PlayerWeaponController : NetworkBehaviour
             _currentAmmoInMag.Value += ammoWeNeed;
         }
     }
+    #endregion
 
+    #region ReloadCoroutine
     private IEnumerator ReloadCoroutine()
     {
         PlayWeaponSFXEveryOneRPC(AudioToPlay.Reloading);
@@ -274,5 +297,6 @@ public class PlayerWeaponController : NetworkBehaviour
         _isReloading = false;
         _reloadCoroutine = null;
     }
+    #endregion
 }
 

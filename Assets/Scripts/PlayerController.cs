@@ -10,11 +10,11 @@ public class PlayerController : NetworkBehaviour
     private CharacterController _cc;
     private NetworkTransform _netTransform;
 
-    private Transform camTransform;
+    private Transform _camTransform;
 
     public float Speed = 7f;
 
-    private float camYRotation = 0;
+    private float _camYRotation = 0;
     public float Sensitivity = 1;
 
     private NetworkVariable<Vector3> _lastPos = new NetworkVariable<Vector3>();
@@ -48,22 +48,23 @@ public class PlayerController : NetworkBehaviour
 
     private float _stepTimer = 0.1f;
 
+    #region Awake
     void Awake()
     {
         _cc = GetComponent<CharacterController>();
         _netTransform = GetComponent<NetworkTransform>();
 
-        camTransform = GetComponentInChildren<Camera>().transform;
-        _lowPassFilter = camTransform.GetComponent<AudioLowPassFilter>();
+        _camTransform = GetComponentInChildren<Camera>().transform;
+        _lowPassFilter = _camTransform.GetComponent<AudioLowPassFilter>();
         _health = GetComponent<Health>();
 
         _animator = GetComponentInChildren<Animator>();
 
         _audioSource = GetComponent<AudioSource>();
     }
+    #endregion
 
-
-
+    #region OnNetworkSpawn
     public override void OnNetworkSpawn()
     {
 
@@ -71,23 +72,16 @@ public class PlayerController : NetworkBehaviour
 
         if (!IsOwner)
         {
-            camTransform.GetComponent<Camera>().enabled = false; // dont need cam for non local player
-            camTransform.GetComponent<AudioListener>().enabled = false;
+            _camTransform.GetComponent<Camera>().enabled = false; // dont need cam for non local player
+            _camTransform.GetComponent<AudioListener>().enabled = false;
         }
 
         if (IsOwner) SetLastPosServerRPC(transform.position);
         // SyncScaleServerRPC(Vector3.one);
     }
+    #endregion
 
-    // Start is called before the first frame update
-    void Start()
-    {
-
-    }
-
-
-
-
+    #region Update
     // Update is called once per frame
     void Update()
     {
@@ -106,22 +100,20 @@ public class PlayerController : NetworkBehaviour
 
         // _netTransform.
 
-
-
-
         _lowPassFilter.enabled = CSGasEffectTimer.Value > 1f;
 
-
-
-
     }
+    #endregion
 
+    #region HandleGroundCheck
     private void HandleGroundCheck()
     {
         // ~((1 << 7) | (1 << 8)) ignore player and body layers.
         _isGrounded = Physics.Raycast(transform.position, -transform.up, 1.1f, ~((1 << 7) | (1 << 8)));
     }
+    #endregion
 
+    #region HandleGravity
     private void HandleGravity()
     {
         if (_isGrounded && _velocity.y < -2)
@@ -133,7 +125,9 @@ public class PlayerController : NetworkBehaviour
             _velocity.y += Gravity * Time.deltaTime;
         }
     }
+    #endregion
 
+    #region HandleJumping
     private void HandleJumping()
     {
         if (Input.GetKeyDown(KeyCode.Space) && _isGrounded)
@@ -142,7 +136,9 @@ public class PlayerController : NetworkBehaviour
             _animator.SetTrigger("Jump");
         }
     }
+    #endregion
 
+    #region HandleMovement
     private void HandleMovement()
     {
         Vector3 input = new Vector3(Input.GetAxisRaw("Horizontal"), 0, Input.GetAxisRaw("Vertical"));
@@ -166,20 +162,24 @@ public class PlayerController : NetworkBehaviour
 
         VerifyLegalMoveServerRPC(transform.position, _velocity);
     }
+    #endregion
 
+    #region HandleLook
     private void HandleLook()
     {
         Vector2 mouseInput = new Vector2(Input.GetAxisRaw("Mouse X"), Input.GetAxisRaw("Mouse Y"));
 
         transform.Rotate(0, mouseInput.x * Sensitivity, 0);
 
-        camYRotation -= mouseInput.y * Sensitivity;
+        _camYRotation -= mouseInput.y * Sensitivity;
 
-        camYRotation = Mathf.Clamp(camYRotation, -80, 80);
+        _camYRotation = Mathf.Clamp(_camYRotation, -80, 80);
 
-        camTransform.localRotation = Quaternion.Euler(camYRotation, 0, 0);
+        _camTransform.localRotation = Quaternion.Euler(_camYRotation, 0, 0);
     }
+    #endregion
 
+    #region SortPlayerStuffOnServer
     private void SortPlayerStuffOnServer()
     {
         ConfirmPositionToServerOwnerRPC(transform.position);
@@ -192,7 +192,9 @@ public class PlayerController : NetworkBehaviour
         }
 
     }
+    #endregion
 
+    #region ConfirmPositionToServerOwnerRPC
     [Rpc(SendTo.Owner)]
     private void ConfirmPositionToServerOwnerRPC(Vector3 serverPos)
     {
@@ -209,21 +211,27 @@ public class PlayerController : NetworkBehaviour
             print("corrected bad position");
         }
     }
+    #endregion
 
+    #region TickDamage
     private void TickDamage()
     {
         if (_tickDamageCoroutine != null) return;
 
         _tickDamageCoroutine = StartCoroutine(TickEverySecond());
     }
+    #endregion
 
+    #region TickEverySecond
     private IEnumerator TickEverySecond()
     {
         _health.AddToHealth(-TickDamageAmount);
         yield return new WaitForSeconds(1);
         _tickDamageCoroutine = null;
     }
+    #endregion
 
+    #region SetLastPosServerRPC
     /// <summary>
     /// Sets the last pos so the server does not freak out.
     /// </summary>
@@ -233,8 +241,9 @@ public class PlayerController : NetworkBehaviour
     {
         _lastPos.Value = pos;
     }
+    #endregion
 
-
+    #region VerifyLegalMoveServerRPC
     [Rpc(SendTo.Server)]
     private void VerifyLegalMoveServerRPC(Vector3 pos, Vector3 velocity)
     {
@@ -270,20 +279,26 @@ public class PlayerController : NetworkBehaviour
         }
 
     }
+    #endregion
 
+    #region GiveCSGasEffectServerRPC
     [Rpc(SendTo.Server)]
     public void GiveCSGasEffectServerRPC()
     {
         CSGasEffectTimer.Value = CSGasEffectDuration;
     }
+    #endregion
 
+    #region CorrectMoveOwnerRPC
     [Rpc(SendTo.Owner)]
     private void CorrectMoveOwnerRPC(Vector3 pos)
     {
         print("Move corrected");
         transform.position = pos;
     }
+    #endregion
 
+    #region SetLocationOwnerRPC
     [Rpc(SendTo.Owner)]
     public void SetLocationOwnerRPC(Vector3 pos)
     {
@@ -295,4 +310,5 @@ public class PlayerController : NetworkBehaviour
         _cc.enabled = true;
 
     }
+    #endregion
 }

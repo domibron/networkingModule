@@ -7,6 +7,9 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
+/// <summary>
+/// Handles the pre game UI.
+/// </summary>
 public class PreGameCanvas : NetworkBehaviour
 {
     public GameObject PreGameObject;
@@ -20,10 +23,11 @@ public class PreGameCanvas : NetworkBehaviour
 
     public float SecondsToWaitBeforeStarting = 15f;
 
-    private NetworkVariable<float> _timer = new NetworkVariable<float>();
-
     public NetworkVariable<int> PlayerCountNumber = new NetworkVariable<int>(0);
 
+    private NetworkVariable<float> _timer = new NetworkVariable<float>();
+
+    #region Start
     void Start()
     {
         NetworkManager.Singleton.OnConnectionEvent += OnConnectionEvent;
@@ -40,26 +44,16 @@ public class PreGameCanvas : NetworkBehaviour
         PlayerCountNumber.OnValueChanged += UpdatePlayerCount;
         _timer.OnValueChanged += UpdateTimer;
 
-
     }
+    #endregion
 
-    private void UpdateTimer(float previousValue, float newValue)
-    {
-        TimerImage.fillAmount = newValue / SecondsToWaitBeforeStarting;
-    }
-
-    void OnDisable()
-    {
-        NetworkManager.Singleton.OnConnectionEvent -= OnConnectionEvent;
-        NetworkManager.Singleton.OnServerStopped -= OnServerStopped;
-    }
-
+    #region Update
     void Update()
     {
         RoundStats.text = $"Current round: {GamePersistent.Instance.CurrentRound.Value}\n"
         + $"P1: {GamePersistent.Instance.PlayerOneScore.Value} | P2: {GamePersistent.Instance.PlayerTwoScore.Value}";
 
-        if ((IsServer || IsHost) && PlayerCountNumber.Value >= 2) // ah, this pains me. should be fine for a small game.
+        if ((IsServer || IsHost) && PlayerCountNumber.Value >= 2)
         {
             _timer.Value = _timer.Value -= Time.deltaTime;
         }
@@ -74,7 +68,25 @@ public class PreGameCanvas : NetworkBehaviour
         }
 
     }
+    #endregion
 
+    #region UpdateTimer
+    private void UpdateTimer(float previousValue, float newValue)
+    {
+        TimerImage.fillAmount = newValue / SecondsToWaitBeforeStarting;
+    }
+    #endregion
+
+    #region OnDisable
+    void OnDisable()
+    {
+        // unsubscribe to any events to prevent any issues.
+        NetworkManager.Singleton.OnConnectionEvent -= OnConnectionEvent;
+        NetworkManager.Singleton.OnServerStopped -= OnServerStopped;
+    }
+    #endregion
+
+    #region ForceStartGame
     public void ForceStartGame()
     {
         if (IsServer || IsHost)
@@ -82,17 +94,23 @@ public class PreGameCanvas : NetworkBehaviour
             GamePersistent.Instance.StartGame();
         }
     }
+    #endregion
 
+    #region OnServerStopped
     private void OnServerStopped(bool obj)
     {
         DisconnectFromServer();
     }
+    #endregion
 
+    #region UpdatePlayerCount
     public void UpdatePlayerCount(int previous, int current)
     {
         PlayerCount.text = "Players\n" + PlayerCountNumber.Value;
     }
+    #endregion
 
+    #region OnConnectionEvent
     private void OnConnectionEvent(NetworkManager manager, ConnectionEventData data)
     {
         if (manager.IsServer || manager.IsHost)
@@ -109,9 +127,11 @@ public class PreGameCanvas : NetworkBehaviour
                 break;
         }
     }
+    #endregion
 
+    #region DisconnectFromServer
     // after we know we are not present, we clean up and remove the network manager.
-    public void DisconnectFromServer()
+    public void DisconnectFromServer() // Duplicated on GamePersistent.
     {
         GameObject NetworkManagerObject = NetworkManager.Singleton.gameObject;
 
@@ -129,6 +149,7 @@ public class PreGameCanvas : NetworkBehaviour
 
         SceneManager.LoadScene("MainMenu", LoadSceneMode.Single);
     }
+    #endregion
 
 
 }

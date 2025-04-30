@@ -30,14 +30,13 @@ public class GamePersistent : NetworkBehaviour
     public TMP_Text FpsText;
     public TMP_Text PingText;
 
-    private float fps = 120;
-    private float ping = 10;
+    private float _fps = 120;
+    private float _ping = 10;
 
     // TODO can turn this into rpc calls and let client calculate all this.
+    // what was this referring to? did i move the comment by accident?
 
-
-    // we need to keep track of the players, but we cannot store them here.
-
+    #region Awake
     void Awake()
     {
         if (Instance != null && Instance != this)
@@ -49,23 +48,55 @@ public class GamePersistent : NetworkBehaviour
             Instance = this;
         }
     }
+    #endregion
 
+    #region Start
     // Start is called before the first frame update
     void Start()
     {
-        // Timer.OnValueChanged += OnTimerChanged;
-        InRound.OnValueChanged += OnInRoundChanged;
-
         NetworkManager.OnConnectionEvent += OnConnectionEvent;
 
         WinnerTextBoxContainer.SetActive(false);
-
-        // if (IsServer || IsHost)
-        // {
-        //     // Timer.Value = RoundTime;
-        // }
     }
+    #endregion
 
+    #region Update
+    // Update is called once per frame
+    void Update()
+    {
+        // display FPS
+        float newFPS = 1.0f / Time.smoothDeltaTime;
+        _fps = Mathf.Lerp(_fps, newFPS, 0.005f);
+
+        FpsText.text = "FPS\n" + ((int)_fps).ToString();
+
+
+        // display Ping
+        float newPing = NetworkManager.Singleton.NetworkConfig.NetworkTransport.GetCurrentRtt(NetworkManager.Singleton.NetworkConfig.NetworkTransport.ServerClientId);
+        _ping = Mathf.Lerp(_ping, newPing, 0.05f);
+
+        PingText.text = "PING\n" + ((int)_ping).ToString();
+
+
+
+        if (InRound.Value)
+        {
+            if (Cursor.lockState != CursorLockMode.Locked) Cursor.lockState = CursorLockMode.Locked;
+
+            if (Cursor.visible) Cursor.visible = false;
+        }
+        else
+        {
+            if (Cursor.lockState != CursorLockMode.None) Cursor.lockState = CursorLockMode.None;
+
+            if (!Cursor.visible) Cursor.visible = true;
+        }
+
+        if (Input.GetKeyDown(KeyCode.Escape)) Application.Quit();
+    }
+    #endregion
+
+    #region ResetEveryThingServerRPC
     [Rpc(SendTo.Server)]
     private void ResetEveryThingServerRPC()
     {
@@ -74,15 +105,9 @@ public class GamePersistent : NetworkBehaviour
 
         CurrentRound.Value = 1;
     }
+    #endregion
 
-    private void OnInRoundChanged(bool previousValue, bool newValue)
-    {
-        // if (newValue && (IsHost || IsServer))
-        // {
-        //     Timer.Value = RoundTime;
-        // }
-    }
-
+    #region OnConnectionEvent
     private void OnConnectionEvent(NetworkManager manager, ConnectionEventData data)
     {
         if (data.EventType == ConnectionEvent.ClientDisconnected)
@@ -104,19 +129,25 @@ public class GamePersistent : NetworkBehaviour
             }
         }
     }
+    #endregion
 
+    #region OnDisable
     void OnDisable()
     {
         NetworkManager.OnConnectionEvent -= OnConnectionEvent;
         // KickAllServerRPC();
     }
+    #endregion
 
+    #region OnDestroy
     public override void OnDestroy()
     {
         KickAllServerRPC();
         base.OnDestroy();
     }
+    #endregion
 
+    #region KickAllServerRPC
     [Rpc(SendTo.Server)]
     private void KickAllServerRPC()
     {
@@ -127,58 +158,19 @@ public class GamePersistent : NetworkBehaviour
             NetworkManager.Singleton.DisconnectClient(client.ClientId, "Server Closed");
         }
     }
+    #endregion
 
+    #region OnNetworkSpawn
     public override void OnNetworkSpawn()
     {
         base.OnNetworkSpawn();
 
         DontDestroyOnLoad(gameObject);
     }
-
-    // Update is called once per frame
-    void Update()
-    {
-        // if ((IsServer || IsHost) && Timer.Value > 0)
-        // {
-        //     Timer.Value -= Time.deltaTime;
-        // }
-        // else if (Timer.Value <= 0 && (IsServer || IsHost) && !InRound.Value)
-        // {
-        //     InRound.Value = true;
-        //     // Dont think we need this. since somewhere in unity docs said it does scene syncing automatically.
-        //     //NetworkManager.Singleton.SceneManager.LoadScene("GameScene", LoadSceneMode.Single);
-        // }
-
-        float newFPS = 1.0f / Time.smoothDeltaTime;
-        fps = Mathf.Lerp(fps, newFPS, 0.005f);
-
-        FpsText.text = "FPS\n" + ((int)fps).ToString();
+    #endregion
 
 
-
-        float newPing = NetworkManager.Singleton.NetworkConfig.NetworkTransport.GetCurrentRtt(NetworkManager.Singleton.NetworkConfig.NetworkTransport.ServerClientId);
-        ping = Mathf.Lerp(ping, newPing, 0.05f);
-
-        PingText.text = "PING\n" + ((int)ping).ToString();
-
-
-
-        if (InRound.Value)
-        {
-            if (Cursor.lockState != CursorLockMode.Locked) Cursor.lockState = CursorLockMode.Locked;
-
-            if (Cursor.visible) Cursor.visible = false;
-        }
-        else
-        {
-            if (Cursor.lockState != CursorLockMode.None) Cursor.lockState = CursorLockMode.None;
-
-            if (!Cursor.visible) Cursor.visible = true;
-        }
-
-        if (Input.GetKeyDown(KeyCode.Escape)) Application.Quit();
-    }
-
+    #region EndRoundServerRPC
     [Rpc(SendTo.Server)]
     public void EndRoundServerRPC(bool thereIsAWinner = false, ulong winnerID = 0)
     {
@@ -195,9 +187,6 @@ public class GamePersistent : NetworkBehaviour
         {
             // p1 win
             PlayerOneScore.Value++;
-            // WrapEverythingUpAndLeaveGameSceneServerRPC();
-
-
         }
         else
         {
@@ -209,25 +198,26 @@ public class GamePersistent : NetworkBehaviour
 
         DisplayWinnersEveryOneRPC(winnerID);
 
-
-
-
-
-
     }
+    #endregion
 
+    #region DisplayWinnersEveryOneRPC
     [Rpc(SendTo.Everyone)]
     private void DisplayWinnersEveryOneRPC(ulong winnerID)
     {
         StartCoroutine(DisplayWinner(winnerID));
     }
+    #endregion
 
+    #region DisplayDrawEveryoneRPC
     [Rpc(SendTo.Everyone)]
     private void DisplayDrawEveryoneRPC()
     {
         StartCoroutine(DisplayDraw());
     }
+    #endregion
 
+    #region DisplayWinner
     private IEnumerator DisplayWinner(ulong winnerID)
     {
         WinnerTextBox.text = (winnerID == NetworkManager.Singleton.ConnectedClientsIds[0] ? "Player <color=blue>One</color> Wins The Round!" : "Player <color=red>Two</color> Wins The Round!");
@@ -251,7 +241,9 @@ public class GamePersistent : NetworkBehaviour
             WrapEverythingUpAndLeaveGameSceneServerRPC();
         }
     }
+    #endregion
 
+    #region DisplayDraw
     private IEnumerator DisplayDraw()
     {
         WinnerTextBox.text = "No One Wins The Round! Again!";
@@ -266,7 +258,10 @@ public class GamePersistent : NetworkBehaviour
             WrapEverythingUpAndLeaveGameSceneServerRPC(false);
         }
     }
+    #endregion
 
+    #region WrapEverythingUpAndLeaveGameSceneServerRPC
+    //I love the long name. I wander what this function does?
     [Rpc(SendTo.Server)]
     public void WrapEverythingUpAndLeaveGameSceneServerRPC(bool someOneWon = true)
     {
@@ -274,7 +269,9 @@ public class GamePersistent : NetworkBehaviour
         if (someOneWon) CurrentRound.Value++;
         NetworkManager.Singleton.SceneManager.LoadScene("PreGameScene", LoadSceneMode.Single);
     }
+    #endregion
 
+    #region StartGame
     public void StartGame()
     {
         if (!IsHost && !IsServer) return;
@@ -285,7 +282,9 @@ public class GamePersistent : NetworkBehaviour
         NetworkManager.Singleton.SceneManager.LoadScene("GameScene", LoadSceneMode.Single);
         // Timer.Value = RoundTime;
     }
+    #endregion
 
+    #region SpawnPlayersServerRPC
     // TODO use transforms to align rotation to spawn points.
     [Rpc(SendTo.Server)]
     public void SpawnPlayersServerRPC(Vector3 playerOneStart, Vector3 playerTwoStart)
@@ -309,7 +308,9 @@ public class GamePersistent : NetworkBehaviour
 
         }
     }
+    #endregion
 
+    #region DisconnectFromServer
     public void DisconnectFromServer(string message = "User disconnected")
     {
         GameObject NetworkManagerObject = NetworkManager.Singleton.gameObject;
@@ -328,6 +329,7 @@ public class GamePersistent : NetworkBehaviour
 
         SceneManager.LoadScene("MainMenu", LoadSceneMode.Single);
     }
+    #endregion
 
 
 }

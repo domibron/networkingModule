@@ -26,6 +26,7 @@ public class ArenaPlayerUI : NetworkBehaviour
 
     private float _takenDamageTimer = 0f;
 
+    #region Start
     void Start()
     {
         _health = GetComponentInParent<Health>();
@@ -36,7 +37,9 @@ public class ArenaPlayerUI : NetworkBehaviour
 
         _grenadeWeaponManager = GetComponentInParent<GrenadeWeaponManager>();
     }
+    #endregion
 
+    #region OnNetworkSpawn
     public override void OnNetworkSpawn()
     {
         base.OnNetworkSpawn();
@@ -46,11 +49,14 @@ public class ArenaPlayerUI : NetworkBehaviour
             gameObject.SetActive(false);
         }
     }
+    #endregion
 
+    #region Update
     void Update()
     {
         if (!IsOwner) return;
 
+        // Updates the UI
 
         HealthBar.fillAmount = _health.GetHealthNormalized();
 
@@ -81,9 +87,12 @@ public class ArenaPlayerUI : NetworkBehaviour
 
         TakenDamageVignette.color = damageColor;
     }
+    #endregion
 
+    #region 
     public void TakeDamage()
     {
         _takenDamageTimer = 1f;
     }
+    #endregion
 }

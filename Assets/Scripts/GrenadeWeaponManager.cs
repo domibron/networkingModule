@@ -30,7 +30,7 @@ public class GrenadeWeaponManager : NetworkBehaviour
 
     private Animator _animator;
 
-
+    #region Awake
     void Awake()
     {
         _camTransform = GetComponentInChildren<Camera>().transform;
@@ -38,46 +38,9 @@ public class GrenadeWeaponManager : NetworkBehaviour
 
         _animator = GetComponentInChildren<Animator>();
     }
+    #endregion
 
-    // Start is called before the first frame update
-    void Start()
-    {
-
-    }
-
-    public override void OnNetworkSpawn()
-    {
-        base.OnNetworkSpawn();
-
-        SetGrenadeCountToStartingServerRPC();
-    }
-
-    [Rpc(SendTo.Server)]
-    public void SetGrenadeCountToStartingServerRPC()
-    {
-        GrenadeCount.Value = StartingAmount;
-    }
-
-    [Rpc(SendTo.Server)]
-    public void AddToGrenadeCountServerRPC(int amount)
-    {
-        GrenadeCount.Value += amount;
-    }
-
-    [Rpc(SendTo.Server)]
-    public void SpawnGrenadeServerRPC(Vector3 spawnPoint, Vector3 forceToApply)
-    {
-        NetworkObject grenade = NetworkManager.Singleton.SpawnManager.InstantiateAndSpawn(GrenadeObject, position: spawnPoint);
-
-        grenade.GetComponent<Rigidbody>().AddForce(forceToApply, ForceMode.Impulse);
-    }
-
-    [Rpc(SendTo.Everyone)]
-    void PlayThrowSoundEveryOneRPC()
-    {
-        _audioSource.PlayOneShot(GrenadeOut);
-    }
-
+    #region Update
     // Update is called once per frame
     void Update()
     {
@@ -117,4 +80,50 @@ public class GrenadeWeaponManager : NetworkBehaviour
             _isHolding = false;
         }
     }
+    #endregion
+
+    #region OnNetworkSpawn
+    public override void OnNetworkSpawn()
+    {
+        base.OnNetworkSpawn();
+
+        SetGrenadeCountToStartingServerRPC();
+    }
+    #endregion
+
+    #region SetGrenadeCountToStartingServerRPC
+    [Rpc(SendTo.Server)]
+    public void SetGrenadeCountToStartingServerRPC()
+    {
+        GrenadeCount.Value = StartingAmount;
+    }
+    #endregion
+
+    #region AddToGrenadeCountServerRPC
+    [Rpc(SendTo.Server)]
+    public void AddToGrenadeCountServerRPC(int amount)
+    {
+        GrenadeCount.Value += amount;
+    }
+    #endregion
+
+    #region SpawnGrenadeServerRPC
+    [Rpc(SendTo.Server)]
+    public void SpawnGrenadeServerRPC(Vector3 spawnPoint, Vector3 forceToApply)
+    {
+        NetworkObject grenade = NetworkManager.Singleton.SpawnManager.InstantiateAndSpawn(GrenadeObject, position: spawnPoint);
+
+        grenade.GetComponent<Rigidbody>().AddForce(forceToApply, ForceMode.Impulse);
+    }
+    #endregion
+
+    #region PlayThrowSoundEveryOneRPC
+    [Rpc(SendTo.Everyone)]
+    void PlayThrowSoundEveryOneRPC()
+    {
+        _audioSource.PlayOneShot(GrenadeOut);
+    }
+    #endregion
+
+
 }

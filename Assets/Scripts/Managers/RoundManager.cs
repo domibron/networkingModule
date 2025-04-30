@@ -5,16 +5,26 @@ using TMPro;
 using Unity.Netcode;
 using UnityEngine;
 
+/// <summary>
+/// Handles the current round that is being played out on the server.
+/// </summary>
 public class RoundManager : NetworkBehaviour
 {
     public static RoundManager Instance { get; private set; }
 
-    public float RoundDuration = 300;
+    #region Round Timer Variables
 
     public NetworkVariable<float> RoundTimer = new NetworkVariable<float>(300f);
 
+    public float RoundDuration = 300;
+
     public TMP_Text RoundTimerText;
 
+    private float _roundTimer = 0f; // we use this instead of network because network traffic will be laggy.
+
+    #endregion
+
+    #region Collectables Variables
     public NetworkObject[] CollectableObjects;
 
     public int MaxSpawnedCollectables = 4;
@@ -22,14 +32,15 @@ public class RoundManager : NetworkBehaviour
     public float MaxTimeToWaitToSpawn = 30f;
     public float MinTimeToWaitToSpawn = 10f;
 
-    private float _currentWaitTime = 0f;
-
     public Transform[] CollectableSpawnPoints;
 
     private List<GameObject> _spawnedCollectables = new List<GameObject>();
 
-    private float roundTimer = 0f; // we use this instead of network because network traffic will be laggy.
+    private float _currentWaitTime = 0f;
 
+    #endregion
+
+    #region Awake
     void Awake()
     {
         if (Instance != null && Instance != this)
@@ -41,39 +52,25 @@ public class RoundManager : NetworkBehaviour
             Instance = this;
         }
     }
+    #endregion
 
+    #region Start
     // Start is called before the first frame update
     void Start()
     {
         RoundTimer.OnValueChanged += RoundTimerOnValueChanged;
 
-
-
-
-
     }
+    #endregion
 
-    public override void OnNetworkSpawn()
-    {
-        base.OnNetworkSpawn();
-
-        if (IsServer || IsHost)
-            RoundTimer.Value = RoundDuration;
-    }
-
-    private void RoundTimerOnValueChanged(float previousValue, float newValue)
-    {
-        roundTimer = newValue;
-        RoundTimerText.text = newValue.ToString("F1");
-    }
-
+    #region Update
     // Update is called once per frame
     void Update()
     {
         if (!IsServer && !IsHost)
         {
-            roundTimer -= Time.deltaTime;
-            RoundTimerText.text = roundTimer.ToString("F1");
+            _roundTimer -= Time.deltaTime;
+            RoundTimerText.text = _roundTimer.ToString("F1");
             return;
         }
 
@@ -86,6 +83,7 @@ public class RoundManager : NetworkBehaviour
             TimerEndServerRPC();
         }
 
+        // handles spawning collectables over time.
         if (_spawnedCollectables.Count < MaxSpawnedCollectables && _currentWaitTime <= 0f)
         {
             print("Spawning collectable");
@@ -109,12 +107,35 @@ public class RoundManager : NetworkBehaviour
         }
 
     }
+    #endregion
 
+    #region OnNetworkSpawn
+    public override void OnNetworkSpawn()
+    {
+        base.OnNetworkSpawn();
+
+        if (IsServer || IsHost)
+            RoundTimer.Value = RoundDuration;
+    }
+    #endregion
+
+    #region RoundTimerOnValueChanged
+    private void RoundTimerOnValueChanged(float previousValue, float newValue)
+    {
+        _roundTimer = newValue;
+        RoundTimerText.text = newValue.ToString("F1");
+    }
+    #endregion
+
+
+    #region TimerEndServerRPC
     [Rpc(SendTo.Server)]
     private void TimerEndServerRPC()
     {
+        // we get all the players in the server. (Did it this way in case we want more than 2 players, for future expansion)
         IReadOnlyDictionary<ulong, NetworkClient> playerClient = NetworkManager.Singleton.ConnectedClients;
 
+        // We will get all the health components (1 per player on their arean player body)
         List<Health> healths = new List<Health>();
 
         foreach (NetworkClient client in playerClient.Values)
@@ -128,6 +149,7 @@ public class RoundManager : NetworkBehaviour
             }
         }
 
+        // we will try and get the best health value.
         Health bestHealth = null;
 
         foreach (Health health in healths)
@@ -148,13 +170,16 @@ public class RoundManager : NetworkBehaviour
 
         }
 
+        // End the round based on that data!
         if (bestHealth != null)
             GamePersistent.Instance.EndRoundServerRPC(true, bestHealth.OwnerClientId);
         else
             GamePersistent.Instance.EndRoundServerRPC();
 
     }
+    #endregion
 
+    #region PlayerDiedServerRPC
     [Rpc(SendTo.Server)]
     public void PlayerDiedServerRPC(ulong deadPlayerID)
     {
@@ -167,7 +192,9 @@ public class RoundManager : NetworkBehaviour
             GamePersistent.Instance.EndRoundServerRPC(true, NetworkManager.Singleton.ConnectedClientsIds[0]);
         }
     }
+    #endregion
 
+    #region GetRandomSpawnWithNoCollectable
     private Vector3? GetRandomSpawnWithNoCollectable()
     {
         List<Vector3> potentialSpawnPoints = new List<Vector3>();
@@ -198,12 +225,16 @@ public class RoundManager : NetworkBehaviour
 
         return potentialSpawnPoints[UnityEngine.Random.Range(0, potentialSpawnPoints.Count - 1)];
     }
+    #endregion
 
+    #region RemoveCollectable
     public void RemoveCollectable(GameObject collectable)
     {
         _spawnedCollectables.Remove(collectable);
     }
+    #endregion
 
+    #region DamagePlayerWithIDServerRPC
     [Rpc(SendTo.Server)]
     public void DamagePlayerWithIDServerRPC(ulong playerID, float damage)
     {
@@ -217,7 +248,9 @@ public class RoundManager : NetworkBehaviour
             ownedObj.GetComponent<Health>()?.AddToHealth(-damage);
         }
     }
+    #endregion
 
+    #region HealPlayerWithIDServerRPC
     // yeah, its the same.
     [Rpc(SendTo.Server)]
     public void HealPlayerWithIDServerRPC(ulong playerID, float healAmount)
@@ -232,7 +265,9 @@ public class RoundManager : NetworkBehaviour
             ownedObj.GetComponent<Health>()?.AddToHealth(healAmount);
         }
     }
+    #endregion
 
+    #region GiveAmmoToPlayerWithIDServerRPC
     [Rpc(SendTo.Server)]
     public void GiveAmmoToPlayerWithIDServerRPC(ulong playerID, int ammoAmount)
     {
@@ -246,7 +281,9 @@ public class RoundManager : NetworkBehaviour
             ownedObj.GetComponent<PlayerWeaponController>()?.AddToCurrentPoolServerRPC(ammoAmount);
         }
     }
+    #endregion
 
+    #region GrantDoubleDamageToPlayerWithIDServerRPC
     [Rpc(SendTo.Server)]
     public void GrantDoubleDamageToPlayerWithIDServerRPC(ulong playerID, float duration)
     {
@@ -260,7 +297,9 @@ public class RoundManager : NetworkBehaviour
             ownedObj.GetComponent<PlayerWeaponController>()?.SetDoubleDamageTimerServerRPC(duration);
         }
     }
+    #endregion
 
+    #region GiveCSGasEffectToPlayerWithIDServerRPC
     [Rpc(SendTo.Server)]
     public void GiveCSGasEffectToPlayerWithIDServerRPC(ulong playerID)
     {
@@ -274,7 +313,9 @@ public class RoundManager : NetworkBehaviour
             ownedObj.GetComponent<PlayerController>()?.GiveCSGasEffectServerRPC();
         }
     }
+    #endregion
 
+    #region GiveCSGrenadeToPlayerWithIDServerRPC
     [Rpc(SendTo.Server)]
     public void GiveCSGrenadeToPlayerWithIDServerRPC(ulong playerID, int quantity)
     {
@@ -288,4 +329,5 @@ public class RoundManager : NetworkBehaviour
             ownedObj.GetComponent<GrenadeWeaponManager>()?.AddToGrenadeCountServerRPC(quantity);
         }
     }
+    #endregion
 }
