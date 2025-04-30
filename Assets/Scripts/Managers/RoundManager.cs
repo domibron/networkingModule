@@ -80,8 +80,9 @@ public class RoundManager : NetworkBehaviour
         // server side code :3
         if (RoundTimer.Value > 0) RoundTimer.Value -= Time.deltaTime;
 
-        if (RoundTimer.Value <= 0)
+        if (RoundTimer.Value <= 0 && RoundTimer.Value > -999)
         {
+            RoundTimer.Value = -9999;
             TimerEndServerRPC();
         }
 

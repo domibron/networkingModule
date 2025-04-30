@@ -28,7 +28,7 @@ public class Health : NetworkBehaviour
 
         CurrentHealth.OnValueChanged += OnCurrentHealthChanged;
 
-        SetHealthServerRPC(MaxHealth);
+        ResetHealthServerRPC();
     }
 
     void Update()
@@ -48,6 +48,12 @@ public class Health : NetworkBehaviour
     public void AddToHealth(float amount)
     {
         AddToHealthServerRPC(amount);
+    }
+
+    [Rpc(SendTo.Server)]
+    private void ResetHealthServerRPC()
+    {
+        CurrentHealth.Value = MaxHealth;
     }
 
     [Rpc(SendTo.Server)]
@@ -88,13 +94,6 @@ public class Health : NetworkBehaviour
     void PlayDeathSFXEveryOneRPC()
     {
         RoundManager.Instance.GetComponent<AudioSource>().PlayOneShot(DeathClip);
-    }
-
-    [Rpc(SendTo.Server)]
-    private void SetHealthServerRPC(float value)
-    {
-        // Me no like this, local client to client to server, instead of local client to server to client.
-        CurrentHealth.Value = value;
     }
 
     public float GetHealthNormalized()
