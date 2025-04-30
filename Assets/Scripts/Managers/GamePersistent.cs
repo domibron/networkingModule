@@ -3,8 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using Unity.Netcode;
-using Unity.Netcode.Components;
-using UnityEditor;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -28,6 +26,12 @@ public class GamePersistent : NetworkBehaviour
 
     public GameObject DisconnectReasonPrefab;
     // public NetworkVariable<Dictionary<ulong, NetworkObject>> ArenaObjects;
+
+    public TMP_Text FpsText;
+    public TMP_Text PingText;
+
+    private float fps = 120;
+    private float ping = 10;
 
     // TODO can turn this into rpc calls and let client calculate all this.
 
@@ -144,6 +148,20 @@ public class GamePersistent : NetworkBehaviour
         //     // Dont think we need this. since somewhere in unity docs said it does scene syncing automatically.
         //     //NetworkManager.Singleton.SceneManager.LoadScene("GameScene", LoadSceneMode.Single);
         // }
+
+        float newFPS = 1.0f / Time.smoothDeltaTime;
+        fps = Mathf.Lerp(fps, newFPS, 0.005f);
+
+        FpsText.text = "FPS\n" + ((int)fps).ToString();
+
+
+
+        float newPing = NetworkManager.Singleton.NetworkConfig.NetworkTransport.GetCurrentRtt(NetworkManager.Singleton.NetworkConfig.NetworkTransport.ServerClientId);
+        ping = Mathf.Lerp(ping, newPing, 0.05f);
+
+        PingText.text = "PING\n" + ((int)ping).ToString();
+
+
 
         if (InRound.Value)
         {
