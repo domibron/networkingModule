@@ -10,9 +10,6 @@ public class PlayerController : NetworkBehaviour
     private NetworkTransform _netTransform;
 
     private Transform camTransform;
-    // public Transform PlayerBody;
-
-    private Vector3 _velocity = Vector3.zero;
 
     public float Speed = 7f;
 
@@ -21,13 +18,23 @@ public class PlayerController : NetworkBehaviour
 
     private NetworkVariable<Vector3> _lastPos = new NetworkVariable<Vector3>();
 
+    public float CSGasEffectDuration = 5f;
+
+    public NetworkVariable<float> CSGasEffectTimer = new NetworkVariable<float>(0);
+
+    private Coroutine _tickDamageCoroutine;
+
+    private Health _health;
+
+    public float TickDamageAmount = 5f;
+
     void Awake()
     {
         _cc = GetComponent<CharacterController>();
         _netTransform = GetComponent<NetworkTransform>();
 
         camTransform = GetComponentInChildren<Camera>().transform;
-
+        _health = GetComponent<Health>();
 
 
     }
@@ -61,6 +68,8 @@ public class PlayerController : NetworkBehaviour
     // Update is called once per frame
     void Update()
     {
+        if (IsHost || IsServer) SortPlayerStuffOnServer();
+
         if (!IsOwner) return;
 
         Vector2 mouseInput = new Vector2(Input.GetAxisRaw("Mouse X"), Input.GetAxisRaw("Mouse Y"));
@@ -84,6 +93,54 @@ public class PlayerController : NetworkBehaviour
 
         VerifyLegalMoveServerRPC(transform.position);
         // _netTransform.
+
+        if (CSGasEffectTimer.Value > 0)
+        {
+            // gas effect
+        }
+        else
+        {
+            // remove effect
+        }
+
+
+    }
+
+    private void SortPlayerStuffOnServer()
+    {
+        ConfirmPositionToServerOwnerRPC(transform.position);
+
+        if (CSGasEffectTimer.Value > 0)
+        {
+            CSGasEffectTimer.Value -= Time.deltaTime;
+
+            TickDamage();
+        }
+
+    }
+
+    [Rpc(SendTo.Owner)]
+    private void ConfirmPositionToServerOwnerRPC(Vector3 serverPos)
+    {
+        if (Vector3.Distance(transform.position, serverPos) > 2)
+        {
+            transform.position = serverPos;
+            print("corrected bad position");
+        }
+    }
+
+    private void TickDamage()
+    {
+        if (_tickDamageCoroutine != null) return;
+
+        _tickDamageCoroutine = StartCoroutine(TickEverySecond());
+    }
+
+    private IEnumerator TickEverySecond()
+    {
+        _health.AddToHealth(-TickDamageAmount);
+        yield return new WaitForSeconds(1);
+        _tickDamageCoroutine = null;
     }
 
     /// <summary>
@@ -119,6 +176,12 @@ public class PlayerController : NetworkBehaviour
 
         }
 
+    }
+
+    [Rpc(SendTo.Server)]
+    public void GiveCSGasEffectServerRPC()
+    {
+        CSGasEffectTimer.Value = CSGasEffectDuration;
     }
 
     [Rpc(SendTo.Owner)]

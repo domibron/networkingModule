@@ -55,7 +55,9 @@
     "cSpell.words": [
         "Despawn",
         "Dont",
+        "Lerp",
         "Mathf",
-        "Reanticipate"
+        "Reanticipate",
+        "Rigidbody"
     ]
 }

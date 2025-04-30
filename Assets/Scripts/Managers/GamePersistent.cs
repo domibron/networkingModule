@@ -14,7 +14,7 @@ public class GamePersistent : NetworkBehaviour
 
     public NetworkVariable<int> CurrentRound = new NetworkVariable<int>(0);
 
-    public NetworkVariable<float> Timer = new NetworkVariable<float>(300f);
+    // public NetworkVariable<float> Timer = new NetworkVariable<float>(300f);
 
     public float RoundTime = 120f;
 
@@ -45,23 +45,23 @@ public class GamePersistent : NetworkBehaviour
     void Start()
     {
         PlayerScore.OnValueChanged += OnScoreChanged;
-        Timer.OnValueChanged += OnTimerChanged;
-        InRound.OnValueChanged = OnInRoundChanged;
+        // Timer.OnValueChanged += OnTimerChanged;
+        InRound.OnValueChanged += OnInRoundChanged;
 
         NetworkManager.OnConnectionEvent += OnConnectionEvent;
 
-        if (IsServer || IsHost)
-        {
-            Timer.Value = RoundTime;
-        }
+        // if (IsServer || IsHost)
+        // {
+        //     // Timer.Value = RoundTime;
+        // }
     }
 
     private void OnInRoundChanged(bool previousValue, bool newValue)
     {
-        if (newValue && (IsHost || IsServer))
-        {
-            Timer.Value = RoundTime;
-        }
+        // if (newValue && (IsHost || IsServer))
+        // {
+        //     Timer.Value = RoundTime;
+        // }
     }
 
     private void OnTimerChanged(float previousValue, float newValue)
@@ -99,15 +99,16 @@ public class GamePersistent : NetworkBehaviour
     // Update is called once per frame
     void Update()
     {
-        if ((IsServer || IsHost) && Timer.Value > 0)
-        {
-            Timer.Value -= Time.deltaTime;
-        }
-        else if (Timer.Value <= 0 && (IsServer || IsHost) && !InRound.Value)
-        {
-            InRound.Value = true;
-            NetworkManager.Singleton.SceneManager.LoadScene("GameScene", LoadSceneMode.Single);
-        }
+        // if ((IsServer || IsHost) && Timer.Value > 0)
+        // {
+        //     Timer.Value -= Time.deltaTime;
+        // }
+        // else if (Timer.Value <= 0 && (IsServer || IsHost) && !InRound.Value)
+        // {
+        //     InRound.Value = true;
+        //     // Dont think we need this. since somewhere in unity docs said it does scene syncing automatically.
+        //     //NetworkManager.Singleton.SceneManager.LoadScene("GameScene", LoadSceneMode.Single);
+        // }
     }
 
 
@@ -124,10 +125,10 @@ public class GamePersistent : NetworkBehaviour
 
         InRound.Value = true;
         NetworkManager.Singleton.SceneManager.LoadScene("GameScene", LoadSceneMode.Single);
-        Timer.Value = RoundTime;
+        // Timer.Value = RoundTime;
     }
 
-    // TODO use transforms to align rotation.
+    // TODO use transforms to align rotation to spawn points.
     [Rpc(SendTo.Server)]
     public void SpawnPlayersServerRPC(Vector3 playerOneStart, Vector3 playerTwoStart)
     {
@@ -151,17 +152,5 @@ public class GamePersistent : NetworkBehaviour
         }
     }
 
-    [Rpc(SendTo.Server)]
-    public void DamagePlayerWithIDServerRPC(ulong playerID, float damage)
-    {
-        print("Seeking target player");
-        if (!NetworkManager.Singleton.ConnectedClients.ContainsKey(playerID)) return;
 
-        NetworkClient playerClient = NetworkManager.Singleton.ConnectedClients[playerID];
-
-        foreach (var ownedObj in playerClient.OwnedObjects)
-        {
-            ownedObj.GetComponent<Health>()?.AddToHealth(-damage);
-        }
-    }
 }
