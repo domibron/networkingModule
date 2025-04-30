@@ -39,6 +39,8 @@ public class PlayerController : NetworkBehaviour
 
     private AudioLowPassFilter _lowPassFilter;
 
+    private Animator _animator;
+
     void Awake()
     {
         _cc = GetComponent<CharacterController>();
@@ -48,7 +50,7 @@ public class PlayerController : NetworkBehaviour
         _lowPassFilter = camTransform.GetComponent<AudioLowPassFilter>();
         _health = GetComponent<Health>();
 
-
+        _animator = GetComponentInChildren<Animator>();
     }
 
 
@@ -106,7 +108,8 @@ public class PlayerController : NetworkBehaviour
 
     private void HandleGroundCheck()
     {
-        _isGrounded = Physics.Raycast(transform.position, -transform.up, 1.1f);
+        // ~((1 << 7) | (1 << 8)) ignore player and body layers.
+        _isGrounded = Physics.Raycast(transform.position, -transform.up, 1.1f, ~((1 << 7) | (1 << 8)));
     }
 
     private void HandleGravity()
@@ -124,7 +127,10 @@ public class PlayerController : NetworkBehaviour
     private void HandleJumping()
     {
         if (Input.GetKeyDown(KeyCode.Space) && _isGrounded)
+        {
             _velocity.y = Mathf.Sqrt(JumpHeight * -2f * Gravity);
+            _animator.SetTrigger("Jump");
+        }
     }
 
     private void HandleMovement()
@@ -136,6 +142,9 @@ public class PlayerController : NetworkBehaviour
         Vector3 PlayerMovementDirection = inputAppliedToRotation.normalized * Speed * Time.deltaTime;
 
         _cc.Move(PlayerMovementDirection);
+
+        _animator.SetFloat("XVel", input.x);
+        _animator.SetFloat("ZVel", input.z);
 
         VerifyLegalMoveServerRPC(transform.position, _velocity);
     }

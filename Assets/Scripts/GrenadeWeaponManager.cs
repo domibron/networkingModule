@@ -28,10 +28,15 @@ public class GrenadeWeaponManager : NetworkBehaviour
 
     private AudioSource _audioSource;
 
+    private Animator _animator;
+
+
     void Awake()
     {
         _camTransform = GetComponentInChildren<Camera>().transform;
         _audioSource = GetComponent<AudioSource>();
+
+        _animator = GetComponentInChildren<Animator>();
     }
 
     // Start is called before the first frame update
@@ -93,6 +98,7 @@ public class GrenadeWeaponManager : NetworkBehaviour
 
         if (Input.GetKeyDown(KeyCode.G))
         {
+            _animator.SetFloat("WeaponStateX", 1);
             _isHolding = true;
         }
         else if (Input.GetKeyUp(KeyCode.G))
@@ -106,6 +112,7 @@ public class GrenadeWeaponManager : NetworkBehaviour
 
                 AddToGrenadeCountServerRPC(-1);
             }
+            _animator.SetFloat("WeaponStateX", 0);
 
             _isHolding = false;
         }

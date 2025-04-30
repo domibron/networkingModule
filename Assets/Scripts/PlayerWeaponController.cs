@@ -53,11 +53,15 @@ public class PlayerWeaponController : NetworkBehaviour
         GunClick,
     }
 
+    private Animator _animator;
+
     void Awake()
     {
         _camTransform = GetComponentInChildren<Camera>().transform;
 
         _audioSource = GetComponent<AudioSource>();
+
+        _animator = GetComponentInChildren<Animator>();
     }
 
     void Start()
@@ -163,6 +167,7 @@ public class PlayerWeaponController : NetworkBehaviour
 
             PlayWeaponSFXEveryOneRPC(AudioToPlay.FireBullet);
 
+            _animator.SetFloat("WeaponStateY", 1);
 
             print("Fired");
             if (Physics.Raycast(_camTransform.position, _camTransform.forward, out RaycastHit hit, 999f, LayerMask))
@@ -197,6 +202,10 @@ public class PlayerWeaponController : NetworkBehaviour
         else if (Input.GetKeyDown(KeyCode.Mouse0) && _weaponFireRateCoolDown <= 0f && _currentAmmoInMag.Value <= 0 && !_isReloading)
         {
             PlayWeaponSFXEveryOneRPC(AudioToPlay.GunClick);
+        }
+        else if (Input.GetKeyUp(KeyCode.Mouse0) && !_isReloading)
+        {
+            _animator.SetFloat("WeaponStateY", 0);
         }
 
         if (Input.GetKeyDown(KeyCode.R))
@@ -258,11 +267,10 @@ public class PlayerWeaponController : NetworkBehaviour
     {
         PlayWeaponSFXEveryOneRPC(AudioToPlay.Reloading);
         _isReloading = true;
-
+        _animator.SetTrigger("Reload");
         yield return new WaitForSeconds(ReloadSpeed);
 
         ReloadMagServerRPC();
-
         _isReloading = false;
         _reloadCoroutine = null;
     }
