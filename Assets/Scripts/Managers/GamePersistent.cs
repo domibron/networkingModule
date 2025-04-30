@@ -157,6 +157,8 @@ public class GamePersistent : NetworkBehaviour
 
             if (!Cursor.visible) Cursor.visible = true;
         }
+
+        if (Input.GetKeyDown(KeyCode.Escape)) Application.Quit();
     }
 
     [Rpc(SendTo.Server)]

@@ -31,6 +31,15 @@ public class Health : NetworkBehaviour
         SetHealthServerRPC(MaxHealth);
     }
 
+    void Update()
+    {
+        if (transform.position.y < 20f)
+        {
+            AddToHealth(-10);
+        }
+    }
+
+
     private void OnCurrentHealthChanged(float previousValue, float newValue)
     {
 
