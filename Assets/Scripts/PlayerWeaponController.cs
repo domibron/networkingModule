@@ -130,7 +130,7 @@ public class PlayerWeaponController : NetworkBehaviour
                     return;
 
                 }
-                if (playerNetObject.OwnerClientId == OwnerClientId) return; // TODO Fix player hitting themselves.
+                if (playerNetObject.OwnerClientId == OwnerClientId) return; // TODO Fix player hitting themselves. could set the body hit boxes to player layer for us?
 
                 float damage = BaseWeaponDamage * (DoubleDamageTimer.Value > 0 ? 2f : 1f);
 
