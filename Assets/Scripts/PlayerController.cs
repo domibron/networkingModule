@@ -37,12 +37,15 @@ public class PlayerController : NetworkBehaviour
 
     private bool _isGrounded;
 
+    private AudioLowPassFilter _lowPassFilter;
+
     void Awake()
     {
         _cc = GetComponent<CharacterController>();
         _netTransform = GetComponent<NetworkTransform>();
 
         camTransform = GetComponentInChildren<Camera>().transform;
+        _lowPassFilter = camTransform.GetComponent<AudioLowPassFilter>();
         _health = GetComponent<Health>();
 
 
@@ -91,14 +94,12 @@ public class PlayerController : NetworkBehaviour
 
         // _netTransform.
 
-        if (CSGasEffectTimer.Value > 0)
-        {
-            // gas effect
-        }
-        else
-        {
-            // remove effect
-        }
+
+
+
+        _lowPassFilter.enabled = CSGasEffectTimer.Value > 1f;
+
+
 
 
     }

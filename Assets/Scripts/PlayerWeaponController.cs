@@ -88,6 +88,7 @@ public class PlayerWeaponController : NetworkBehaviour
         if (IsHost || IsServer) SortPlayerStuffOnServer();
         if (!IsOwner) return;
 
+
         if (_weaponFireRateCoolDown > 0f) _weaponFireRateCoolDown -= Time.deltaTime;
 
         if (!_isReloading)
@@ -116,9 +117,10 @@ public class PlayerWeaponController : NetworkBehaviour
                 if (playerNetObject == null) return;
                 if (playerNetObject.OwnerClientId == OwnerClientId) return; // TODO Fix player hitting themselves.
 
+                float damage = BaseWeaponDamage * (DoubleDamageTimer.Value > 0 ? 2f : 1f);
 
                 RoundManager.Instance.DamagePlayerWithIDServerRPC(playerNetObject.OwnerClientId,
-                    (hit.collider.gameObject.CompareTag("Head") ? 999f : BaseWeaponDamage));
+                    (hit.collider.gameObject.CompareTag("Head") ? 999f : damage));
             }
             else
             {

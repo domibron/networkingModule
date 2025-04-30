@@ -15,7 +15,7 @@ public class GasGrenade : NetworkBehaviour
 
     private float _activationDelay = 1f;
 
-    private bool _isActive = false;
+    private NetworkVariable<bool> _isActive = new NetworkVariable<bool>(false);
 
     // Start is called before the first frame update
     void Start()
@@ -28,13 +28,27 @@ public class GasGrenade : NetworkBehaviour
     // Update is called once per frame
     void Update()
     {
+        if (!IsServer && !IsHost)
+        {
+
+            if (!_isActive.Value) return;
+
+            if (!ParticleSystem.isPlaying) ParticleSystem.Play();
+
+            if (!ShereCollider.enabled) ShereCollider.enabled = true;
+
+
+            return;
+
+        }
+
         if (_activationDelay > 0f)
         {
             _activationDelay -= Time.deltaTime;
         }
-        else if (!_isActive)
+        else if (!_isActive.Value)
         {
-            _isActive = true;
+            _isActive.Value = true;
 
             ParticleSystem.Play();
 
@@ -42,9 +56,6 @@ public class GasGrenade : NetworkBehaviour
 
             StartCoroutine(DestroyAfterTime(LifeTimeAfterActivation));
         }
-
-        if (GetComponentInParent<Rigidbody>().velocity.magnitude < .5f)
-            GetComponentInParent<Rigidbody>().velocity = Vector3.zero;
     }
 
     private IEnumerator DestroyAfterTime(float time)

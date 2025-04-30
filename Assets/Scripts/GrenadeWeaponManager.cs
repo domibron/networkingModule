@@ -8,7 +8,7 @@ public class GrenadeWeaponManager : NetworkBehaviour
 {
     public NetworkObject GrenadeObject;
 
-    private NetworkVariable<int> grenadeCount = new NetworkVariable<int>(2);
+    public NetworkVariable<int> GrenadeCount = new NetworkVariable<int>(2);
 
     public int StartingAmount = 2;
 
@@ -45,13 +45,13 @@ public class GrenadeWeaponManager : NetworkBehaviour
     [Rpc(SendTo.Server)]
     public void SetGrenadeCountToStartingServerRPC()
     {
-        grenadeCount.Value = StartingAmount;
+        GrenadeCount.Value = StartingAmount;
     }
 
     [Rpc(SendTo.Server)]
     public void AddToGrenadeCountServerRPC(int amount)
     {
-        grenadeCount.Value += amount;
+        GrenadeCount.Value += amount;
     }
 
     [Rpc(SendTo.Server)]
@@ -86,7 +86,7 @@ public class GrenadeWeaponManager : NetworkBehaviour
         }
         else if (Input.GetKeyUp(KeyCode.G))
         {
-            if (grenadeCount.Value > 0)
+            if (GrenadeCount.Value > 0)
             {
                 // throw
                 SpawnGrenadeServerRPC(_camTransform.position, _camTransform.forward * Mathf.Lerp(MinThrowForce, MaxThrowForce, _throwForcePercentage));

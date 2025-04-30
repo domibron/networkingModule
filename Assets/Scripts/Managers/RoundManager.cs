@@ -79,9 +79,12 @@ public class RoundManager : NetworkBehaviour
         }
 
         // server side code :3
-        RoundTimer.Value -= Time.deltaTime;
+        if (RoundTimer.Value > 0) RoundTimer.Value -= Time.deltaTime;
 
-
+        if (RoundTimer.Value <= 0)
+        {
+            TimerEndServerRPC();
+        }
 
         if (_spawnedCollectables.Count < MaxSpawnedCollectables && _currentWaitTime <= 0f)
         {
@@ -94,6 +97,7 @@ public class RoundManager : NetworkBehaviour
 
             NetworkObject collectableNetObject = NetworkManager.Singleton.SpawnManager.InstantiateAndSpawn(
                 CollectableObjects[UnityEngine.Random.Range(1, CollectableObjects.Length * CollectableObjects.Length) % CollectableObjects.Length],
+                destroyWithScene: true,
                 position: spawnLocation.Value);
 
             _spawnedCollectables.Add(collectableNetObject.gameObject);
@@ -104,6 +108,64 @@ public class RoundManager : NetworkBehaviour
             _currentWaitTime -= Time.deltaTime;
         }
 
+    }
+
+    [Rpc(SendTo.Server)]
+    private void TimerEndServerRPC()
+    {
+        IReadOnlyDictionary<ulong, NetworkClient> playerClient = NetworkManager.Singleton.ConnectedClients;
+
+        List<Health> healths = new List<Health>();
+
+        foreach (NetworkClient client in playerClient.Values)
+        {
+            foreach (var ownedObj in client.OwnedObjects)
+            {
+                if (ownedObj.GetComponent<Health>() != null)
+                {
+                    healths.Add(ownedObj.GetComponent<Health>());
+                }
+            }
+        }
+
+        Health bestHealth = null;
+
+        foreach (Health health in healths)
+        {
+            if (bestHealth == null)
+            {
+                bestHealth = health;
+                continue;
+            }
+
+            if (health.CurrentHealth.Value < bestHealth.CurrentHealth.Value)
+            {
+                bestHealth = health;
+                continue;
+            }
+
+            if (bestHealth.CurrentHealth.Value == health.CurrentHealth.Value) bestHealth = null; // we use this for now because this is a 2p game.
+
+        }
+
+        if (bestHealth != null)
+            GamePersistent.Instance.EndRoundServerRPC(true, bestHealth.OwnerClientId);
+        else
+            GamePersistent.Instance.EndRoundServerRPC();
+
+    }
+
+    [Rpc(SendTo.Server)]
+    public void PlayerDiedServerRPC(ulong deadPlayerID)
+    {
+        if (NetworkManager.Singleton.ConnectedClientsIds[0] == deadPlayerID)
+        {
+            GamePersistent.Instance.EndRoundServerRPC(true, NetworkManager.Singleton.ConnectedClientsIds[1]);
+        }
+        else
+        {
+            GamePersistent.Instance.EndRoundServerRPC(true, NetworkManager.Singleton.ConnectedClientsIds[0]);
+        }
     }
 
     private Vector3? GetRandomSpawnWithNoCollectable()

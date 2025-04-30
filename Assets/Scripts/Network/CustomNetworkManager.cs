@@ -9,6 +9,8 @@ public class CustomNetworkManager : NetworkManager
 {
     public static CustomNetworkManager Instance { get; private set; }
 
+    private bool _connected = false;
+
     void Awake()
     {
         if (Instance != null && Instance != this)
@@ -27,6 +29,18 @@ public class CustomNetworkManager : NetworkManager
         NetworkManager.Singleton.ConnectionApprovalCallback = ApprovalCheck;
     }
 
+    void Update()
+    {
+        if (IsConnectedClient && _connected == false) _connected = true;
+
+        if (!IsConnectedClient && _connected == true)
+        {
+            Shutdown();
+            UnityEngine.SceneManagement.SceneManager.LoadScene("MainMenu", UnityEngine.SceneManagement.LoadSceneMode.Single);
+            Destroy(this);
+        }
+
+    }
 
 
     public void ConnectToIPAndPort(string ip, ushort port)
@@ -72,7 +86,7 @@ public class CustomNetworkManager : NetworkManager
         }
     }
 
-    [ServerRpc]
+    [Rpc(SendTo.Server)]
     private void KickPlayer(ulong clientId)
     {
         DisconnectClient(clientId, "Kicked because the server was full!");

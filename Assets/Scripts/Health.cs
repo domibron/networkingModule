@@ -8,7 +8,9 @@ public class Health : NetworkBehaviour
 {
     public float MaxHealth = 100f;
 
-    private NetworkVariable<float> _currentHealth = new NetworkVariable<float>();
+    public NetworkVariable<float> CurrentHealth = new NetworkVariable<float>();
+
+    public ArenaPlayerUI ArenaPlayerUI; // BAD, coupling the code dammit.
 
     void Start()
     {
@@ -19,7 +21,7 @@ public class Health : NetworkBehaviour
     {
         base.OnNetworkSpawn();
 
-        _currentHealth.OnValueChanged += OnCurrentHealthChanged;
+        CurrentHealth.OnValueChanged += OnCurrentHealthChanged;
 
         SetHealthServerRPC(MaxHealth);
     }
@@ -38,28 +40,37 @@ public class Health : NetworkBehaviour
     private void AddToHealthServerRPC(float amount)
     {
         print("updating health by" + amount);
-        _currentHealth.Value += amount;
+        CurrentHealth.Value += amount;
 
-        if (_currentHealth.Value > MaxHealth)
+        if (amount < 0) TakenDamageOwnerRPC();
+
+        if (CurrentHealth.Value > MaxHealth)
         {
-            _currentHealth.Value = MaxHealth;
+            CurrentHealth.Value = MaxHealth;
         }
-        else if (_currentHealth.Value <= 0)
+        else if (CurrentHealth.Value <= 0)
         {
             // GamePersistent.Instance.EndGame(playerID);
+            RoundManager.Instance.PlayerDiedServerRPC(OwnerClientId);
             GetComponent<NetworkObject>().Despawn();
         }
+    }
+
+    [Rpc(SendTo.Owner)]
+    private void TakenDamageOwnerRPC()
+    {
+        ArenaPlayerUI.TakeDamage();
     }
 
     [Rpc(SendTo.Server)]
     private void SetHealthServerRPC(float value)
     {
         // Me no like this, local client to client to server, instead of local client to server to client.
-        _currentHealth.Value = value;
+        CurrentHealth.Value = value;
     }
 
     public float GetHealthNormalized()
     {
-        return _currentHealth.Value / MaxHealth;
+        return CurrentHealth.Value / MaxHealth;
     }
 }

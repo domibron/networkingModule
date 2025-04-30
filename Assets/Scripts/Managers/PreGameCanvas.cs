@@ -18,7 +18,7 @@ public class PreGameCanvas : NetworkBehaviour
 
     public Image TimerImage;
 
-    public float SecondsToWaitBeforeStarting = 30f;
+    public float SecondsToWaitBeforeStarting = 15f;
 
     private NetworkVariable<float> _timer = new NetworkVariable<float>();
 
@@ -29,9 +29,10 @@ public class PreGameCanvas : NetworkBehaviour
         NetworkManager.Singleton.OnConnectionEvent += OnConnectionEvent;
         NetworkManager.Singleton.OnServerStopped += OnServerStopped;
 
-        if (NetworkManager.Singleton.IsServer || NetworkManager.Singleton.IsHost)
+        if (IsServer || IsHost)
         {
             PlayerCountNumber.Value = NetworkManager.Singleton.ConnectedClients.Count;
+            _timer.Value = SecondsToWaitBeforeStarting;
         }
 
         PlayerCount.text = "Players\n" + PlayerCountNumber.Value;
@@ -56,7 +57,7 @@ public class PreGameCanvas : NetworkBehaviour
     void Update()
     {
         RoundStats.text = $"Current round: {GamePersistent.Instance.CurrentRound.Value}\n"
-        + $"P1: {GamePersistent.Instance.PlayerScore.Value.x} | P2: {GamePersistent.Instance.PlayerScore.Value.y}";
+        + $"P1: {GamePersistent.Instance.PlayerOneScore.Value} | P2: {GamePersistent.Instance.PlayerTwoScore.Value}";
 
         if ((IsServer || IsHost) && PlayerCountNumber.Value >= 2) // ah, this pains me. should be fine for a small game.
         {
@@ -67,6 +68,10 @@ public class PreGameCanvas : NetworkBehaviour
             _timer.Value = SecondsToWaitBeforeStarting;
         }
 
+        if ((IsServer || IsHost) && _timer.Value <= 0)
+        {
+            GamePersistent.Instance.StartGame();
+        }
 
     }
 
@@ -85,7 +90,7 @@ public class PreGameCanvas : NetworkBehaviour
 
     public void UpdatePlayerCount(int previous, int current)
     {
-        PlayerCount.text = "Player count = " + current;
+        PlayerCount.text = "Players\n" + PlayerCountNumber.Value;
     }
 
     private void OnConnectionEvent(NetworkManager manager, ConnectionEventData data)
